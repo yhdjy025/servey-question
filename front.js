@@ -33,7 +33,7 @@ $(document).ready(function() {
     });
 
 	$('body').on('click', '#add-survey-btn', function() {
-        chrome.storage.sync.get('survey_option', function(data) {
+        chrome.storage.sync.get('survey', function(data) {
             var title = $('body').find('#survey-title').val();
             var answer = $('body').find('#survey-answer').val();
             var option = $('body').find('#survey-option').val();
@@ -45,8 +45,8 @@ $(document).ready(function() {
                 layer.msg('答案不能为空', {icon:5});
                 return false;
             }
-            $.post("http://survey.yhdjy.cn/survey/save", {
-                sid: data.survey_option.id,
+            $.post("https://survey.yhdjy.cn/survey/save", {
+                sid: data.survey.id,
                 title: title,
                 answer: answer,
                 option: option
