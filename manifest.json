@@ -23,13 +23,13 @@
       "matches": [
         "<all_urls>"
       ],
+      "css": [
+        "./theme/default/layer.css"
+      ],
       "js": [
         "jquery.js",
         "layer.js",
         "front.js"
-      ],
-      "css": [
-        "theme/default/layer.css"
       ],
       "run_at": "document_end"
     }
