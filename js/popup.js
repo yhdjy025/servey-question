@@ -17,7 +17,8 @@ chrome.storage.sync.get('survey_status', function (data) {
 
 chrome.storage.sync.get('select_survey', function (data) {
     if (data.select_survey) {
-        $('#survey-title').text(data.select_survey.title);
+        var link = '<a href="https://survey.yhdjy.cn/admin/question/'+data.select_survey.id+'" target="_blank">'+data.select_survey.title+'</a>'
+        $('#survey-title').html(link);
     }
 });
 
