@@ -219,13 +219,28 @@ var _autoAnswer = (function () {
             })
         },
         findAnswer: function (question) {
-            $.each(question.answer, function (i, v) {
+            if (question.script != '') {
+                _autoAnswer.autoScript(question.script);
+            }
+            if (question.xpath.length > 0) {
+                _autoAnswer.autoXpath(question.xpath);
+            }
+            if (question.answer.length > 0) {
+                _autoAnswer.auroAnswer(question.answer);
+            }
+        },
+        auroAnswer: function (answer) {
+            var flag = 0;
+            $.each(answer, function (i, v) {
                 var dom = $(':contains("' + v + '")');
                 for (i = dom.length; i >= 0; i--) {
                     var tagName = $(dom[i - 1]).prop('tagName');
-                    var flag = 0;
+                    flag = 0;
                     switch (tagName) {
                         case 'OPTION':
+                            if ($(dom[i - 1]).is(':selected')) {
+                                return true;
+                            }
                             $(dom[i - 1]).attr('selected', true);
                             flag = 1;
                             break;
@@ -235,17 +250,19 @@ var _autoAnswer = (function () {
                                 var type = $(input).attr('type');
                                 switch (type) {
                                     case 'checkbox':
+                                        if ($(input).is(':checked')) {
+                                            return true;
+                                        }
                                         $(input).attr('checked', true);
                                         $(input).click();
                                         flag = 1;
                                         break;
                                     case 'radio':
+                                        if ($(input).is(':checked')) {
+                                            return true;
+                                        }
                                         $(input).attr('checked', true);
                                         $(input).click();
-                                        flag = 1;
-                                        break;
-                                    case 'text':
-                                        $(input).val(v);
                                         flag = 1;
                                         break;
                                     default:
@@ -257,12 +274,88 @@ var _autoAnswer = (function () {
                             break;
                     }
                     if (flag == 1) {
-                        layerMsg('识别成功', 0);
                         $(dom[i]).css('border', '1px solid red');
-                        return false;
                     }
                 }
             })
+            if (flag == 1) {
+                layerMsg('识别成功', 1);
+            }
+        },
+        autoXpath: function (xpath) {
+            var flag = 0;
+            $.each(xpath, function (i, v) {
+                var dom = _autoAnswer.xpath(v[0]);
+                var tagName = $(dom).prop('tagName');
+                flag = 0;
+                switch (tagName) {
+                    case 'OPTION':
+                        if ($(dom).is(':selected')) {
+                            return true;
+                        }
+                        $(dom).attr('selected', true);
+                        flag = 1;
+                        break;
+                    case 'INPUT':
+                        var type = $(dom).attr('type');
+                        switch (type) {
+                            case 'checkbox':
+                                if ($(dom).is(':checked')) {
+                                    return true;
+                                }
+                                $(dom).attr('checked', true);
+                                $(dom).click();
+                                flag = 1;
+                                break;
+                            case 'radio':
+                                if ($(dom).is(':checked')) {
+                                    return true;
+                                }
+                                $(dom).attr('checked', true);
+                                $(dom).click();
+                                flag = 1;
+                                break;
+                            case 'text':
+                                if ($(dom).val() != '')  {
+                                    return true;
+                                }
+                                $(dom).val(v[1]);
+                                flag = 1;
+                                break;
+                            case 'password':
+                                if ($(dom).val() != '')  {
+                                    return true;
+                                }
+                                $(dom).val(v[1]);
+                                flag = 1;
+                                break;
+                            default:
+                                layerMsg('未找到', 0);
+                                return true;
+                                break;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            })
+            if (flag == 1) {
+                layerMsg('识别成功', 1);
+            }
+        },
+        autoScript: function (script) {
+            eval(script);
+            layerMsg('js执行成功', 1);
+        },
+
+        xpath: function (STR_XPATH) {
+            var xresult = document.evaluate(STR_XPATH, document, null, XPathResult.ANY_TYPE, null);
+            var xnodes = [];
+            var xres;
+            while (xres = xresult.iterateNext()) {
+                xnodes.push(xres);
+            }
+            return xnodes;
         },
         //remove space \n
         iGetInnerText: function (testStr) {
