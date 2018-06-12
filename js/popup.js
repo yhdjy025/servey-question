@@ -26,12 +26,23 @@ $(function () {
     $('#select-survey').click(function () {
         chrome.tabs.getSelected(null, function (tab) {
             chrome.tabs.executeScript(tab.id, {
-                code: 'addQuestion()'
+                code: '_survey.addSurvey()'
             }, function () {
                 console.log('done');
             })
         })
     })
+
+    $('#add-question').click(function () {
+        chrome.tabs.getSelected(null, function (tab) {
+            chrome.tabs.executeScript(tab.id, {
+                code: '_question.addQuestion()'
+            }, function () {
+                console.log('done');
+            })
+        })
+    })
+
     
     $('#select-find,#auto-find').change(function () {
         var status = {
