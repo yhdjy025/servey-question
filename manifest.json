@@ -14,7 +14,7 @@
   "options_page": "options.html",
   "background": {
     "scripts": [
-      "background.js"
+      "js/background.js"
     ],
     "persistent": false
   },
@@ -24,12 +24,13 @@
         "<all_urls>"
       ],
       "css": [
-        "./theme/default/layer.css"
+        "css/theme/default/layer.css",
+        "css/app.css"
       ],
       "js": [
-        "jquery.js",
-        "layer.js",
-        "front.js"
+        "js/app.js",
+        "js/layer.js",
+        "js/front.js"
       ],
       "run_at": "document_end"
     }

@@ -1,3 +1,7 @@
+var select_survey = 'https://survey.yhdjy.cn/chrome/selectSurvey';
+var add_question = 'https://survey.yhdjy.cn/chrome/addQuestion';
+var add_survey = 'https://survey.yhdjy.cn/chrome/addSurvey';
+
 window.isOpen = 0;
 $(document).ready(function() {
 	$('body').on('mouseup', 'p,div,p,span', function() {
@@ -138,6 +142,15 @@ $(document).ready(function() {
     $('body').on('click', '.remove-btn', function () {
         $(this).parents('.form-item-s').remove();
     })
+
+    $('body').on('click', '#survey-search-btn', function () {
+        var title = $('body').find('#survey-title-input').val();
+        if ('' == title) {
+            layer.msg('title is not allowed empty', {icon:5});
+            return false;
+        }
+        var url = $(this).parents('form').attr('action');
+    })
 });
 
 
@@ -147,3 +160,41 @@ function iGetInnerText(testStr) {
     resultStr = testStr.replace(/[\r\n]/g, ""); //去掉回车换行
     return resultStr;
 }
+
+// add survey
+function addQuestion() {
+    $.get(select_survey, function (ret) {
+        layer.open({
+            type: 1,
+            area: ['700px', '400px'],
+            btn:['确定', '取消'],
+            content: ret,
+            yes: function (index) {
+                addSurveySubmit(index);
+            }
+        })
+    })
+}
+
+// save survey
+function addSurveySubmit(index) {
+    var url = $('#edit-form').attr('action');
+    var params = {};
+    var foem = $('#edit-form').serializeArray();
+    $.each(foem, function (i, v) {
+        params[v.name] = v.value;
+    })
+    $.post(url, params, function (ret) {
+        if (ret.status == 1) {
+            chrome.storage.sync.set({select_survey: ret.data});
+            layer.msg(ret.msg, {icon:6}, function () {
+                layer.close(index);
+            });
+            return true;
+        }  else {
+            layer.msg(ret.msg, {icon:5});
+            return false;
+        }
+    })
+}
+

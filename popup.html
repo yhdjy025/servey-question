@@ -6,43 +6,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="bootstrap.min.css">
-    <link rel="stylesheet" href="theme/default/layer.css">
-
-    <title>Hello, world!</title>
+    <link rel="stylesheet" href="css/app.css">
+    <title>Survey Tool</title>
 </head>
 <body>
-    <div class="container">
-        <div class="card" style="width: 30rem;">
-            <div class="card-header">
-                设置
-            </div>
-            <ul class="list-group list-group-flush">
-                <li class="list-group-item">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="on" id="auto">
-                        <label class="form-check-label" for="auto">
-                            开启选中识别
-                        </label>
-                    </div>
-                </li>
-                <li class="list-group-item">
-                <div class="form-group row">
-                    <div class="col-sm-12 input-group-text">
-                        <span class="input-group-prepend">调查：</span>
-                        <input type="email" class="form-control" id="survey-title" placeholder="输入调查标题">
-                        <button id="save-survey" class="btn btn-primary input-group-append">保存</button>
-                    </div>
-                </div>
-                </li>
-            </ul>
-        </div>
-    </div>
-<!-- Optional JavaScript -->
-<!-- jQuery first, then Popper.js, then Bootstrap JS -->
-<script src="jquery.js"></script>
-<script src="bootstrap.min.js"></script>
-    <script src="layer.js"></script>
-<script src="popup.js"></script>
+<div class="container" style="min-width: 250px;">
+    <ul class="list-group">
+        <li class="list-group-item">
+            <label for="select-find" class="">
+                <input type="checkbox" id="select-find" value="1"> 开启选择识别
+            </label>
+        </li>
+        <li class="list-group-item">
+            <label for="auto-find" class="">
+                <input type="checkbox" id="auto-find" value="1"> 开启全自动识别
+            </label>
+        </li>
+        <li class="list-group-item">
+            <a href="javascript:;" id="select-survey" class="btn btn-primary">选择调查</a>
+            <a href="javascript:;" id="add-question" class="btn btn-primary pull-right">添加题目</a>
+        </li>
+        <li class="list-group-item">
+            <p>当前调查：<span id="survey-title">未选择</span></p>
+        </li>
+    </ul>
+</div>
+<script src="js/app.js"></script>
+<script src="js/layer.js"></script>
+<script src="js/popup.js"></script>
 </body>
 </html>
