@@ -21,6 +21,10 @@ var _question = (function () {
         addQuestion: function (title) {
             chrome.storage.sync.get('select_survey', function (data) {
                 if (data.select_survey) {
+                    if (data.select_survey.script != '' && !title) {
+                        eval(data.select_survey.before);
+                        console.log(title)
+                    }
                     var url = add_question + '/' + data.select_survey.id + '?title=' + (title ? title : '');
                     $.get(url, function (ret) {
                         layer.open({
@@ -78,6 +82,7 @@ var _question = (function () {
             $.post(url, params, function (ret) {
                 if (ret.status == 1) {
                     layer.msg(ret.msg, {icon: 6}, function () {
+                        window.isOpen = 0;
                         layer.close(index);
                     });
                     return true;
@@ -137,6 +142,7 @@ var _survey = (function () {
     return {
         addSurvey: function () {
             $.get(select_survey, function (ret) {
+                window.isOpen = 1;
                 layer.open({
                     type: 1,
                     title: '选择调查',
@@ -152,6 +158,7 @@ var _survey = (function () {
                         } else {
                             _survey.addSurveySubmit(index);
                         }
+                        window.isOpen = 0;
                     }
                 })
             })
@@ -218,7 +225,7 @@ var _autoAnswer = (function () {
                 if (survey.before== '' || survey.after == '')  {
                     return false;
                 }
-
+                _autoAnswer.autoSurvey(survey);
             })
         }
     })
@@ -228,18 +235,24 @@ var _autoAnswer = (function () {
             $.post(find_question, {title: title}, function (ret) {
                 if (ret.status == 0) {
                     layerMsg(ret.msg, 0, function () {
+                        window.isOpen = 1;
                         _question.addQuestion(title);
                     })
                 } else {
-                    var res = _autoAnswer.findAnswer(ret.data);
-                    if (res == true && typeof  callback == 'function') {
-                        callback();
-                    }
                     window.isOpen = 0;
+                    layerMsg('题目找到了,正在识别...', 1, function () {
+                        var res = _autoAnswer.findAnswer(ret.data);
+                        console.log(res);
+                        if (res == true && typeof  callback == 'function') {
+                            console.log(callback);
+                            callback();
+                        }
+                    }, 1500);
                 }
             })
         },
         findAnswer: function (question) {
+            console.log(question)
             var ret1 = 1,ret2 = 1,ret3 = 1;
             if (question.script != '') {
                 ret1 = _autoAnswer.autoScript(question.script)
@@ -257,9 +270,12 @@ var _autoAnswer = (function () {
         },
         ///寻找答案
         auroAnswer: function (answer) {
-            var flag = 0;
+            var flag = 1;
             $.each(answer, function (i, v) {
                 var dom = $(':contains("' + v + '")');
+                if (dom.length == 0) {
+                    flag = 0;
+                }
                 for (i = dom.length; i >= 0; i--) {
                     var tagName = $(dom[i - 1]).prop('tagName');
                     flag = 0;
@@ -269,53 +285,47 @@ var _autoAnswer = (function () {
                                 return true;
                             }
                             $(dom[i - 1]).attr('selected', true);
-                            flag = 1;
                             break;
                         default:
                             var input = $(dom[i - 1]).find('input');
                             if (input.length > 0) {
-                                flag = _autoAnswer.input(input, '');
+                                _autoAnswer.input(input, '');
                             }
                             break;
                     }
-                    if (flag == 1) {
-                        $(dom[i]).css('border', '1px solid red');
-                    }
+                    $(dom[i - 1]).css('border', '1px solid red');
                 }
             })
-            if (flag == 1) {
-                layerMsg('识别成功', 1);
-            }
+
             return flag;
         },
         //执行xpath处理
         autoXpath: function (xpath) {
-            var flag = 0;
+            var flag = 1;
             $.each(xpath, function (i, v) {
                 var dom = _autoAnswer.xpath(v[0]);
+                if (dom.length == 0) {
+                    flag = 0;
+                    return true;
+                }
                 var tagName = $(dom).prop('tagName');
-                flag = 0;
+                console.log(dom)
                 switch (tagName) {
                     case 'OPTION':
                         if ($(dom).is(':selected')) {
                             return true;
                         }
                         $(dom).attr('selected', true);
-                        flag = 1;
                         break;
                     case 'INPUT':
-                        flag = _autoAnswer.input(dom, v[1]);
+                        _autoAnswer.input(dom, v[1]);
                         break;
                     default:
+                        $(dom).click();
                         break;
                 }
-                if (flag == 1) {
-                    $(dom[i]).css('border', '1px solid red');
-                }
+                $(dom).css('border', '1px solid red');
             })
-            if (flag == 1) {
-                layerMsg('识别成功', 1);
-            }
             return flag;
         },
         //执行javascript
@@ -412,9 +422,10 @@ $(document).ready(function () {
 });
 
 //alert message
-function layerMsg(msg, type, callback) {
+function layerMsg(msg, type, callback, time) {
+    time = time ? time : 300
     if (1 == type) {
-        layer.msg(msg, {icon: 6, shade: 0.2, time: 500}, function () {
+        layer.msg(msg, {icon: 6, shade: 0.2, time: time}, function () {
             if (typeof callback == 'function')
                 callback();
         })
