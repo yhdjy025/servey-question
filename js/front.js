@@ -194,6 +194,7 @@ var _survey = (function () {
 })();
 
 var _autoAnswer = (function () {
+    //手动选择
     $('body').on('mouseup', 'p,div,p,span', function () {
         var text = document.getSelection().toString();
         text = _autoAnswer.iGetInnerText(text);
@@ -205,30 +206,56 @@ var _autoAnswer = (function () {
             }
         })
     })
+    
+    //自动执行
+    chrome.storage.sync.get('survey_status', function (data) {
+        if (data.survey_status && data.survey_status.auto == 1) {
+            chrome.storage.sync.get('select_survey', function (ret) {
+                if (!ret.select_survey) {
+                    return false;
+                }
+                var survey = ret.select_survey;
+                if (survey.before== '' || survey.after == '')  {
+                    return false;
+                }
+
+            })
+        }
+    })
+    
     return {
-        findQuestion: function (title) {
+        findQuestion: function (title, callback) {
             $.post(find_question, {title: title}, function (ret) {
                 if (ret.status == 0) {
                     layerMsg(ret.msg, 0, function () {
                         _question.addQuestion(title);
                     })
                 } else {
-                    _autoAnswer.findAnswer(ret.data);
+                    var res = _autoAnswer.findAnswer(ret.data);
+                    if (res == true && typeof  callback == 'function') {
+                        callback();
+                    }
                     window.isOpen = 0;
                 }
             })
         },
         findAnswer: function (question) {
+            var ret1 = 1,ret2 = 1,ret3 = 1;
             if (question.script != '') {
-                _autoAnswer.autoScript(question.script);
+                ret1 = _autoAnswer.autoScript(question.script)
             }
             if (question.xpath.length > 0) {
-                _autoAnswer.autoXpath(question.xpath);
+                ret2 = _autoAnswer.autoXpath(question.xpath);
             }
             if (question.answer.length > 0) {
-                _autoAnswer.auroAnswer(question.answer);
+                ret3 = _autoAnswer.auroAnswer(question.answer);
             }
+            if (0 == ret1 || 0 == ret2 || 0 == ret3) {
+                return false;
+            }
+            return true;
         },
+        ///寻找答案
         auroAnswer: function (answer) {
             var flag = 0;
             $.each(answer, function (i, v) {
@@ -247,29 +274,7 @@ var _autoAnswer = (function () {
                         default:
                             var input = $(dom[i - 1]).find('input');
                             if (input.length > 0) {
-                                var type = $(input).attr('type');
-                                switch (type) {
-                                    case 'checkbox':
-                                        if ($(input).is(':checked')) {
-                                            return true;
-                                        }
-                                        $(input).attr('checked', true);
-                                        $(input).click();
-                                        flag = 1;
-                                        break;
-                                    case 'radio':
-                                        if ($(input).is(':checked')) {
-                                            return true;
-                                        }
-                                        $(input).attr('checked', true);
-                                        $(input).click();
-                                        flag = 1;
-                                        break;
-                                    default:
-                                        layerMsg('未找到', 0);
-                                        return true;
-                                        break;
-                                }
+                                flag = _autoAnswer.input(input, '');
                             }
                             break;
                     }
@@ -281,7 +286,9 @@ var _autoAnswer = (function () {
             if (flag == 1) {
                 layerMsg('识别成功', 1);
             }
+            return flag;
         },
+        //执行xpath处理
         autoXpath: function (xpath) {
             var flag = 0;
             $.each(xpath, function (i, v) {
@@ -297,57 +304,27 @@ var _autoAnswer = (function () {
                         flag = 1;
                         break;
                     case 'INPUT':
-                        var type = $(dom).attr('type');
-                        switch (type) {
-                            case 'checkbox':
-                                if ($(dom).is(':checked')) {
-                                    return true;
-                                }
-                                $(dom).attr('checked', true);
-                                $(dom).click();
-                                flag = 1;
-                                break;
-                            case 'radio':
-                                if ($(dom).is(':checked')) {
-                                    return true;
-                                }
-                                $(dom).attr('checked', true);
-                                $(dom).click();
-                                flag = 1;
-                                break;
-                            case 'text':
-                                if ($(dom).val() != '')  {
-                                    return true;
-                                }
-                                $(dom).val(v[1]);
-                                flag = 1;
-                                break;
-                            case 'password':
-                                if ($(dom).val() != '')  {
-                                    return true;
-                                }
-                                $(dom).val(v[1]);
-                                flag = 1;
-                                break;
-                            default:
-                                layerMsg('未找到', 0);
-                                return true;
-                                break;
-                        }
+                        flag = _autoAnswer.input(dom, v[1]);
                         break;
                     default:
                         break;
+                }
+                if (flag == 1) {
+                    $(dom[i]).css('border', '1px solid red');
                 }
             })
             if (flag == 1) {
                 layerMsg('识别成功', 1);
             }
+            return flag;
         },
+        //执行javascript
         autoScript: function (script) {
             eval(script);
             layerMsg('js执行成功', 1);
+            return 1;
         },
-
+        //通过xpath找到指定dom
         xpath: function (STR_XPATH) {
             var xresult = document.evaluate(STR_XPATH, document, null, XPathResult.ANY_TYPE, null);
             var xnodes = [];
@@ -356,6 +333,60 @@ var _autoAnswer = (function () {
                 xnodes.push(xres);
             }
             return xnodes;
+        },
+        //识别input
+        input: function (dom, value) {
+            var flag = 0;
+            var type = $(dom).attr('type');
+            switch (type) {
+                case 'checkbox':
+                    if (!$(dom).is(':checked')) {
+                        $(dom).attr('checked', true);
+                        $(dom).click();
+                        flag = 1;
+                    }
+                    break;
+                case 'radio':
+                    if (!$(dom).is(':checked')) {
+                        $(dom).attr('checked', true);
+                        $(dom).click();
+                        flag = 1;
+                    }
+                    break;
+                case 'text':
+                    if (!$(dom).val() != '') {
+                        $(dom).val(value);
+                        flag = 1;
+                    }
+                    break;
+                case 'password':
+                    if (!$(dom).val() != '' && value != '') {
+                        $(dom).val(value);
+                        flag = 1;
+                    }
+                    break;
+                default:
+                    layerMsg('未找到', 0);
+                    break;
+            }
+            if (flag == 1) {
+                return true;
+            } else {
+                return false;
+            }
+        },
+
+        autoSurvey: function(survey) {
+            var title = '';
+            eval(survey.before);
+            if (title == '') {
+                return false;
+            }
+            _autoAnswer.findQuestion(title, function () {
+                setTimeout(function () {
+                    eval(survey.after);
+                }, 1000);
+            });
         },
         //remove space \n
         iGetInnerText: function (testStr) {
