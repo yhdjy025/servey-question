@@ -21,8 +21,8 @@ var _question = (function () {
         addQuestion: function (title) {
             chrome.storage.sync.get('select_survey', function (data) {
                 if (data.select_survey) {
-                    if (data.select_survey.script != '' && !title) {
-                        eval(data.select_survey.before);
+                    if title == '') {
+                        title = _autoAnswer.getTitle(data.select_survey);
                         console.log(title)
                     }
                     var url = add_question + '/' + data.select_survey.id + '?title=' + (title ? title : '');
@@ -213,7 +213,7 @@ var _autoAnswer = (function () {
             }
         })
     })
-    
+
     //自动执行
     chrome.storage.sync.get('survey_status', function (data) {
         if (data.survey_status && data.survey_status.auto == 1) {
@@ -222,14 +222,14 @@ var _autoAnswer = (function () {
                     return false;
                 }
                 var survey = ret.select_survey;
-                if (survey.before== '' || survey.after == '')  {
+                if ((survey.before == '' || survey.after == '') && (survey.get_title == '' || survey.next == '')) {
                     return false;
                 }
                 _autoAnswer.autoSurvey(survey);
             })
         }
     })
-    
+
     return {
         findQuestion: function (title, callback) {
             $.post(find_question, {title: title}, function (ret) {
@@ -253,7 +253,7 @@ var _autoAnswer = (function () {
         },
         findAnswer: function (question) {
             console.log(question)
-            var ret1 = 1,ret2 = 1,ret3 = 1;
+            var ret1 = 1, ret2 = 1, ret3 = 1;
             if (question.script != '') {
                 ret1 = _autoAnswer.autoScript(question.script)
             }
@@ -276,27 +276,29 @@ var _autoAnswer = (function () {
                 if (dom.length == 0) {
                     flag = 0;
                 }
-                for (i = dom.length; i >= 0; i--) {
-                    var tagName = $(dom[i - 1]).prop('tagName');
+                for (i = dom.length - 1; i >= 0; i--) {
+                    var tagName = $(dom[i]).prop('tagName');
                     flag = 0;
                     switch (tagName) {
                         case 'OPTION':
-                            if ($(dom[i - 1]).is(':selected')) {
-                                return true;
+                            if (!$(dom[i]).is(':selected')) {
+                                $(dom[i]).attr('selected', true);
+                                flag = 1;
                             }
-                            $(dom[i - 1]).attr('selected', true);
                             break;
                         default:
-                            var input = $(dom[i - 1]).find('input');
+                            var input = $(dom[i]).find('input');
                             if (input.length > 0) {
-                                _autoAnswer.input(input, '');
+                                flag = _autoAnswer.input(input, '');
                             }
                             break;
                     }
-                    $(dom[i - 1]).css('border', '1px solid red');
+                    if (flag == 1) {
+                        $(dom[i]).css('border', '1px solid red');
+                        break;
+                    }
                 }
             })
-
             return flag;
         },
         //执行xpath处理
@@ -308,23 +310,7 @@ var _autoAnswer = (function () {
                     flag = 0;
                     return true;
                 }
-                var tagName = $(dom).prop('tagName');
-                console.log(dom)
-                switch (tagName) {
-                    case 'OPTION':
-                        if ($(dom).is(':selected')) {
-                            return true;
-                        }
-                        $(dom).attr('selected', true);
-                        break;
-                    case 'INPUT':
-                        _autoAnswer.input(dom, v[1]);
-                        break;
-                    default:
-                        $(dom).click();
-                        break;
-                }
-                $(dom).css('border', '1px solid red');
+                _autoAnswer.dom(dom, v[1]);
             })
             return flag;
         },
@@ -343,6 +329,25 @@ var _autoAnswer = (function () {
                 xnodes.push(xres);
             }
             return xnodes;
+        },
+        dom: function (dom, value) {
+            var tagName = $(dom).prop('tagName');
+            console.log(dom)
+            switch (tagName) {
+                case 'OPTION':
+                    if ($(dom).is(':selected')) {
+                        return true;
+                    }
+                    $(dom).attr('selected', true);
+                    break;
+                case 'INPUT':
+                    _autoAnswer.input(dom, v[1]);
+                    break;
+                default:
+                    $(dom).click();
+                    break;
+            }
+            $(dom).css('border', '1px solid red');
         },
         //识别input
         input: function (dom, value) {
@@ -386,17 +391,47 @@ var _autoAnswer = (function () {
             }
         },
 
-        autoSurvey: function(survey) {
-            var title = '';
-            eval(survey.before);
+        autoSurvey: function (survey) {
+            var title = _autoAnswer.getTitle(survey);
             if (title == '') {
                 return false;
             }
             _autoAnswer.findQuestion(title, function () {
                 setTimeout(function () {
-                    eval(survey.after);
+                    _autoAnswer.getNext(survey);
                 }, 1000);
             });
+        },
+        getTitle: function (survey) {
+            var title = '';
+            if (survey.before != '') {
+                eval(survey.before);
+            }
+            if (survey.get_title != '' && title == '') {
+                if (survey.get_title.indexOf('@') == 0) {
+                    var dom = _autoAnswer.xpath(survey.get_title.substr(1));
+                } else {
+                    var dom = $(survey.get_title);
+                }
+                if (dom.length > 0) {
+                    title = $(dom).text();
+                }
+            }
+            return title;
+        },
+        getNext: function (survey) {
+            if (survey.after != '') {
+                eval(survey.after);
+            } else {
+                if (survey.next.indexOf('@') == 0) {
+                    var dom = _autoAnswer.xpath(survey.next.substr(1));
+                } else {
+                    var dom = $(survey.next);
+                }
+                if (dom.length > 0) {
+                    $(dom).click();
+                }
+            }
         },
         //remove space \n
         iGetInnerText: function (testStr) {
