@@ -21,7 +21,7 @@ var _question = (function () {
         addQuestion: function (title) {
             chrome.storage.sync.get('select_survey', function (data) {
                 if (data.select_survey) {
-                    if title == '') {
+                    if (title == '') {
                         title = _autoAnswer.getTitle(data.select_survey);
                         console.log(title)
                     }
