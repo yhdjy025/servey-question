@@ -1,6 +1,7 @@
 var select_survey = 'https://survey.yhdjy.cn/chrome/selectSurvey';
 var find_question = 'https://survey.yhdjy.cn/chrome/findQuestion';
 var add_question = 'https://survey.yhdjy.cn/chrome/addQuestion';
+var times = null;
 layer.config({
     shade: false
 });
@@ -21,32 +22,37 @@ var _question = (function () {
         addQuestion: function (title) {
             chrome.storage.sync.get('select_survey', function (data) {
                 if (data.select_survey) {
-                    if (title == '') {
+                    if (!title) {
                         title = _autoAnswer.getTitle(data.select_survey);
                         console.log(title)
                     }
                     var url = add_question + '/' + data.select_survey.id + '?title=' + (title ? title : '');
-                    $.get(url, function (ret) {
-                        layer.open({
-                            type: 1,
-                            title: '添加题目',
-                            area: ['700px', '400px'],
-                            btn: ['确定', '取消'],
-                            maxmin: true,
-                            moveOut: true,
-                            content: ret,
-                            yes: function (index) {
-                                _question.addQuestionSubmit(index);
-                            },
-                            btn2: function (index) {
-                                layer.close(index);
-                                window.isOpen = 0
-                            },
-                            cancel: function (index) {
-                                layer.close(index);
-                                window.isOpen = 0
-                            }
-                        })
+                    layer.open({
+                        type: 2,
+                        title: '添加题目',
+                        area: ['700px', '400px'],
+                        btn: ['确定', '取消'],
+                        maxmin: true,
+                        moveOut: true,
+                        content: url,
+                        yes: function (index) {
+                            var iframe = $('iframe');
+                            iframe[0].contentWindow.postMessage('save_question_cmd', '*');
+                            window.addEventListener('message', function (ev) {
+                                if (ev.data == 'save_question') {
+                                    layer.close(index);
+                                    window.isOpen = 0;
+                                }
+                            }, false)
+                        },
+                        btn2: function (index) {
+                            layer.close(index);
+                            window.isOpen = 0
+                        },
+                        cancel: function (index) {
+                            layer.close(index);
+                            window.isOpen = 0
+                        }
                     })
                 } else {
                     layerMsg('选择一个调查后才能添加题目');
@@ -54,7 +60,7 @@ var _question = (function () {
                 }
             })
         },
-        addQuestionSubmit: function (index) {
+        addQuestionSubmit: function () {
             var url = $('#edit-form').attr('action');
             var params = {
                 _token: $('#edit-form').find('input[name=_token]').val(),
@@ -82,8 +88,7 @@ var _question = (function () {
             $.post(url, params, function (ret) {
                 if (ret.status == 1) {
                     layer.msg(ret.msg, {icon: 6}, function () {
-                        window.isOpen = 0;
-                        layer.close(index);
+                        window.parent.postMessage('save_question', '*');
                     });
                     return true;
                 } else {
@@ -96,8 +101,8 @@ var _question = (function () {
         addInput: function (obj, type) {
             if (1 == type) {
                 var input = '<div class="input-group form-group">\n' +
-                    '<div class="col-sm-6"><input type="text" name="xpath" class="form-control input-sm" value="" placeholder="xpath"></div>' +
-                    '<div class="col-sm-6"><input type="text" name="value" class="form-control input-sm" value="" placeholder="值，下拉和填空需要"></div>' +
+                    '<div class="col-xs-6"><input type="text" name="xpath" class="form-control input-sm" value="" placeholder="xpath"></div>' +
+                    '<div class="col-xs-6"><input type="text" name="value" class="form-control input-sm" value="" placeholder="值，下拉和填空需要"></div>' +
                     '<span class="input-group-btn">' +
                     '<button class="btn btn-danger btn-sm remove-input">删除</button>' +
                     '</span>' +
@@ -139,32 +144,45 @@ var _survey = (function () {
         })
     })
 
+    $('body').on('click', '#search-action tbody tr', function () {
+        $('#search-action tbody tr').removeClass('bg-primary');
+        $(this).addClass('bg-primary');
+        $(this).find('input').attr('checked');
+    })
+
     return {
         addSurvey: function () {
-            $.get(select_survey, function (ret) {
-                window.isOpen = 1;
-                layer.open({
-                    type: 1,
-                    title: '选择调查',
-                    area: ['700px', '400px'],
-                    btn: ['确定', '取消'],
-                    maxmin: true,
-                    moveOut: true,
-                    content: ret,
-                    yes: function (index) {
-                        var action = $('#survey-option').find('.nav li.active').data('action');
-                        if (action == 'search') {
-                            _survey.selectSurvey(index);
-                        } else {
-                            _survey.addSurveySubmit(index);
+            window.isOpen = 1;
+            layer.open({
+                type: 2,
+                title: '选择调查',
+                area: ['700px', '400px'],
+                btn: ['确定', '取消'],
+                maxmin: true,
+                moveOut: true,
+                content: select_survey,
+                yes: function (index) {
+                    var iframe = $('iframe');
+                    iframe[0].contentWindow.postMessage('save_survey_cmd', '*')
+                    window.addEventListener('message', function (ev) {
+                        if (ev.data == 'save_survey') {
+                            layer.close(index);
                         }
-                        window.isOpen = 0;
-                    }
-                })
+                    }, false)
+                    window.isOpen = 0;
+                    return false;
+                }
             })
         },
-
-        addSurveySubmit: function (index) {
+        save: function () {
+            var action = $('#survey-option').find('.nav li.active').data('action');
+            if (action == 'search') {
+                _survey.selectSurvey();
+            } else {
+                _survey.addSurveySubmit();
+            }
+        },
+        addSurveySubmit: function () {
             var url = $('#edit-form').attr('action');
             var params = {};
             var foem = $('#edit-form').serializeArray();
@@ -175,7 +193,7 @@ var _survey = (function () {
                 if (ret.status == 1) {
                     chrome.storage.sync.set({select_survey: ret.data});
                     layerMsg(ret.msg, 1, function () {
-                        layer.close(index);
+                        window.parent.postMessage('save_survey', '*');
                     });
                     return true;
                 } else {
@@ -185,16 +203,17 @@ var _survey = (function () {
             })
         },
 
-        selectSurvey: function (index) {
-            var selected = $('#survey-list').find('input[name=id]:checked');
+        selectSurvey: function () {
+            var selected = $('#survey-list').find('tr.bg-primary');
             if (selected.length == 0) {
                 layerMsg('请选择一个调查', 0);
                 return false;
             }
             var survey = $(selected).data('survey');
+            console.log(survey)
             chrome.storage.sync.set({select_survey: survey});
             layerMsg('select success', 1, function () {
-                layer.close(index);
+                window.parent.postMessage('save_survey', '*');
             });
         },
     };
@@ -215,19 +234,20 @@ var _autoAnswer = (function () {
     })
 
     //自动执行
-    chrome.storage.sync.get('survey_status', function (data) {
-        if (data.survey_status && data.survey_status.auto == 1) {
-            chrome.storage.sync.get('select_survey', function (ret) {
-                if (!ret.select_survey) {
-                    return false;
+    $(function () {
+        times = setInterval(function () {
+            chrome.storage.sync.get('survey_status', function (data) {
+                if (data.survey_status && data.survey_status.auto == 1) {
+                    chrome.storage.sync.get('select_survey', function (ret) {
+                        if (!ret.select_survey) {
+                            return false;
+                        }
+                        var survey = ret.select_survey;
+                        _autoAnswer.autoSurvey(survey);
+                    })
                 }
-                var survey = ret.select_survey;
-                if ((survey.before == '' || survey.after == '') && (survey.get_title == '' || survey.next == '')) {
-                    return false;
-                }
-                _autoAnswer.autoSurvey(survey);
             })
-        }
+        }, 1000);
     })
 
     return {
@@ -396,6 +416,7 @@ var _autoAnswer = (function () {
             if (title == '') {
                 return false;
             }
+            clearInterval(times);
             _autoAnswer.findQuestion(title, function () {
                 setTimeout(function () {
                     _autoAnswer.getNext(survey);
@@ -403,9 +424,11 @@ var _autoAnswer = (function () {
             });
         },
         getTitle: function (survey) {
+            console.log(survey)
             var title = '';
             if (survey.before != '') {
                 eval(survey.before);
+                console.log(title)
             }
             if (survey.get_title != '' && title == '') {
                 if (survey.get_title.indexOf('@') == 0) {
@@ -416,6 +439,7 @@ var _autoAnswer = (function () {
                 if (dom.length > 0) {
                     title = $(dom).text();
                 }
+                console.log(title)
             }
             return title;
         },
@@ -455,6 +479,15 @@ $(document).ready(function () {
     });
 
 });
+
+window.addEventListener('message', function (ev) {
+    if (ev.data == 'save_survey_cmd') {
+        _survey.save();
+    }
+    if (ev.data == 'save_question_cms') {
+        _question.addQuestionSubmit();
+    }
+}, false)
 
 //alert message
 function layerMsg(msg, type, callback, time) {
