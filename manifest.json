@@ -27,7 +27,7 @@
         "css/theme/default/layer.css"
       ],
       "js": [
-        "js/app.js",
+        "js/jquery.min.js",
         "js/layer.js",
         "js/front.js"
       ],
