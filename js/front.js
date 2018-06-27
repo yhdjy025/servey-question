@@ -489,11 +489,13 @@ var _autoAnswer = (function () {
 
 $(document).ready(function () {
     //esc关闭弹框
-    switch (event.keyCode) {
-        case 27:
-            layer.closeAll();
-            window.isOpen = 0;
-    }
+    $(document).keyup(function (event) {
+        switch (event.keyCode) {
+            case 27:
+                layer.closeAll();
+                window.isOpen = 0;
+        }
+    })
 });
 
 window.addEventListener('message', function (ev) {
