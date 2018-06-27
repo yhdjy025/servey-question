@@ -111,7 +111,7 @@ var _question = (function () {
             if (1 == type) {
                 var input = '<div class="input-group form-group">\n' +
                     '<div class="col-xs-6"><input type="text" name="xpath" class="form-control input-sm" value="" placeholder="xpath"></div>' +
-                    '<div class="col-xs-6"><input type="text" name="value" class="form-control input-sm" value="" placeholder="值，下拉和填空需要"></div>' +
+                    '<div class="col-xs-6"><input type="text" name="value" class="form-control input-sm" value="" placeholder="值，填空需要"></div>' +
                     '<span class="input-group-btn">' +
                     '<button class="btn btn-danger btn-sm remove-input">删除</button>' +
                     '</span>' +
