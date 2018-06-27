@@ -1,7 +1,7 @@
 {
-  "name": "Getting Started Example",
+  "name": "Survey Tool",
   "version": "1.0",
-  "description": "Build an Extension!",
+  "description": "A survey tool for answer question autorize",
   "permissions": [
     "contextMenus",
     "tabs",
