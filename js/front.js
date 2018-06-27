@@ -8,7 +8,6 @@ layer.config({
 window.isOpen = 0;
 
 var _question = (function () {
-    var _this = this;
     $('body').on('click', '#edit-form .add-input', function () {
         var type = $(this).data('type');
         _question.addInput(this, type);
@@ -19,6 +18,7 @@ var _question = (function () {
     })
 
     return {
+        //添加题目弹框
         addQuestion: function (title) {
             chrome.storage.sync.get('select_survey', function (data) {
                 if (data.select_survey) {
@@ -45,7 +45,7 @@ var _question = (function () {
                                 }
                             }, false)
                         },
-                        btn2: function(index) {
+                        btn2: function (index) {
                             var iframe = $('iframe');
                             iframe[0].contentWindow.postMessage({key: 'get_auto_question'}, '*');
                             return false;
@@ -65,6 +65,7 @@ var _question = (function () {
                 }
             })
         },
+        //添加题目提交
         addQuestionSubmit: function (returnParams) {
             var url = $('#edit-form').attr('action');
             var params = {
@@ -105,7 +106,7 @@ var _question = (function () {
                 }
             })
         },
-
+        //添加一个答案
         addInput: function (obj, type) {
             if (1 == type) {
                 var input = '<div class="input-group form-group">\n' +
@@ -125,7 +126,7 @@ var _question = (function () {
             }
             $(obj).parent('.form-group').before(input);
         },
-
+        //删除答案
         removeInput: function (obj) {
             $(obj).parents('.input-group').remove();
         }
@@ -134,7 +135,7 @@ var _question = (function () {
 
 
 var _survey = (function () {
-    var _this = this;
+    //搜索调查
     $('body').on('click', '#survey-search-btn', function () {
         var title = $('body').find('#survey-title-input').val();
         if ('' == title) {
@@ -151,7 +152,7 @@ var _survey = (function () {
             }
         })
     })
-
+    //选择调查操作
     $('body').on('click', '#search-action tbody tr', function () {
         $('#search-action tbody tr').removeClass('bg-primary');
         $(this).addClass('bg-primary');
@@ -159,6 +160,7 @@ var _survey = (function () {
     })
 
     return {
+        //添加/选择调查弹框
         addSurvey: function () {
             window.isOpen = 1;
             layer.open({
@@ -173,7 +175,7 @@ var _survey = (function () {
                     var iframe = $('iframe');
                     iframe[0].contentWindow.postMessage({key: 'save_survey_cmd'}, '*')
                     window.addEventListener('message', function (ev) {
-                        if (ev.data == 'save_survey') {
+                        if (ev.data.key == 'save_survey') {
                             layer.close(index);
                         }
                     }, false)
@@ -182,6 +184,7 @@ var _survey = (function () {
                 }
             })
         },
+        //调查添加选择入口
         save: function () {
             var action = $('#survey-option').find('.nav li.active').data('action');
             if (action == 'search') {
@@ -190,6 +193,7 @@ var _survey = (function () {
                 _survey.addSurveySubmit();
             }
         },
+        //添加调查提交
         addSurveySubmit: function () {
             var url = $('#edit-form').attr('action');
             var params = {};
@@ -210,7 +214,7 @@ var _survey = (function () {
                 }
             })
         },
-
+        //选择调查
         selectSurvey: function () {
             var selected = $('#survey-list').find('tr.bg-primary');
             if (selected.length == 0) {
@@ -241,7 +245,7 @@ var _autoAnswer = (function () {
         })
     })
 
-    //自动执行
+    //舰艇开启自动执行
     $(function () {
         times = setInterval(function () {
             chrome.storage.sync.get('survey_status', function (data) {
@@ -259,14 +263,18 @@ var _autoAnswer = (function () {
     })
 
     return {
+        //找题目
         findQuestion: function (title, callback) {
+            //远程请求题目
             $.post(find_question, {title: title}, function (ret) {
+                //题目不存在提示添加
                 if (ret.status == 0) {
                     layerMsg(ret.msg, 0, function () {
                         window.isOpen = 1;
                         _question.addQuestion(title);
                     })
                 } else {
+                    //题目存在 执行自动作答
                     window.isOpen = 0;
                     layerMsg('题目找到了,正在识别...', 1, function () {
                         var res = _autoAnswer.findAnswer(ret.data);
@@ -279,6 +287,7 @@ var _autoAnswer = (function () {
                 }
             })
         },
+        //找答案入口
         findAnswer: function (question) {
             console.log(question)
             var ret1 = 1, ret2 = 1, ret3 = 1;
@@ -358,6 +367,7 @@ var _autoAnswer = (function () {
             }
             return xnodes;
         },
+        //对答案不同类型的dom做处理
         dom: function (dom, value) {
             var tagName = $(dom).prop('tagName');
             console.log(dom)
@@ -418,7 +428,7 @@ var _autoAnswer = (function () {
                 return false;
             }
         },
-
+        //自动识别入口
         autoSurvey: function (survey) {
             var title = _autoAnswer.getTitle(survey);
             if (title == '') {
@@ -431,6 +441,7 @@ var _autoAnswer = (function () {
                 }, 1000);
             });
         },
+        //获取题目标题，根据调查里的配置
         getTitle: function (survey) {
             console.log(survey)
             var title = '';
@@ -451,6 +462,7 @@ var _autoAnswer = (function () {
             }
             return title;
         },
+        //下一题按钮点击
         getNext: function (survey) {
             if (survey.after != '') {
                 eval(survey.after);
@@ -476,31 +488,32 @@ var _autoAnswer = (function () {
 })()
 
 $(document).ready(function () {
-
-
-    $(document).keyup(function (event) {
-        switch (event.keyCode) {
-            case 27:
-                layer.closeAll();
-                window.isOpen = 0;
-        }
-    });
-
+    //esc关闭弹框
+    switch (event.keyCode) {
+        case 27:
+            layer.closeAll();
+            window.isOpen = 0;
+    }
 });
 
 window.addEventListener('message', function (ev) {
+    //保存调查的指令 来自主页面
     if (ev.data.key == 'save_survey_cmd') {
         _survey.save();
     }
+    //保存题目的指令 来自主页面
     if (ev.data.key == 'save_question_cmd') {
         _question.addQuestionSubmit();
     }
-    if (ev.data.key == 'test_auto_question')  {
+    //用于测试添加的答案是否可用 来自iframe
+    if (ev.data.key == 'test_auto_question') {
         console.log(ev.data);
         _autoAnswer.findAnswer(ev.data.question);
     }
+    //获取题目答案数据 来自主页面的通知
     if (ev.data.key == 'get_auto_question') {
         var params = _question.addQuestionSubmit(true);
+        //获取到题目数据后 通知主页面测试答案
         window.parent.postMessage({
             key: 'test_auto_question',
             question: params
@@ -508,7 +521,7 @@ window.addEventListener('message', function (ev) {
     }
 }, false)
 
-//alert message
+//弹出提示
 function layerMsg(msg, type, callback, time) {
     time = time ? time : 300
     if (1 == type) {
