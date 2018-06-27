@@ -31,21 +31,26 @@ var _question = (function () {
                         type: 2,
                         title: '添加题目',
                         area: ['700px', '400px'],
-                        btn: ['确定', '取消'],
+                        btn: ['确定', '测试', '取消'],
                         maxmin: true,
                         moveOut: true,
                         content: url,
-                        yes: function (index) {
+                        btn1: function (index) {
                             var iframe = $('iframe');
-                            iframe[0].contentWindow.postMessage('save_question_cmd', '*');
+                            iframe[0].contentWindow.postMessage({key: 'save_question_cmd'}, '*');
                             window.addEventListener('message', function (ev) {
-                                if (ev.data == 'save_question') {
+                                if (ev.data.key == 'save_question') {
                                     layer.close(index);
                                     window.isOpen = 0;
                                 }
                             }, false)
                         },
-                        btn2: function (index) {
+                        btn2: function(index) {
+                            var iframe = $('iframe');
+                            iframe[0].contentWindow.postMessage({key: 'get_auto_question'}, '*');
+                            return false;
+                        },
+                        btn3: function (index) {
                             layer.close(index);
                             window.isOpen = 0
                         },
@@ -60,7 +65,7 @@ var _question = (function () {
                 }
             })
         },
-        addQuestionSubmit: function () {
+        addQuestionSubmit: function (returnParams) {
             var url = $('#edit-form').attr('action');
             var params = {
                 _token: $('#edit-form').find('input[name=_token]').val(),
@@ -85,10 +90,13 @@ var _question = (function () {
                     params.answer.push(answer);
                 }
             })
+            if (returnParams == true) {
+                return params;
+            }
             $.post(url, params, function (ret) {
                 if (ret.status == 1) {
                     layer.msg(ret.msg, {icon: 6}, function () {
-                        window.parent.postMessage('save_question', '*');
+                        window.parent.postMessage({key: 'save_question'}, '*');
                     });
                     return true;
                 } else {
@@ -163,7 +171,7 @@ var _survey = (function () {
                 content: select_survey,
                 yes: function (index) {
                     var iframe = $('iframe');
-                    iframe[0].contentWindow.postMessage('save_survey_cmd', '*')
+                    iframe[0].contentWindow.postMessage({key: 'save_survey_cmd'}, '*')
                     window.addEventListener('message', function (ev) {
                         if (ev.data == 'save_survey') {
                             layer.close(index);
@@ -193,7 +201,7 @@ var _survey = (function () {
                 if (ret.status == 1) {
                     chrome.storage.sync.set({select_survey: ret.data});
                     layerMsg(ret.msg, 1, function () {
-                        window.parent.postMessage('save_survey', '*');
+                        window.parent.postMessage({key: 'save_survey'}, '*');
                     });
                     return true;
                 } else {
@@ -213,7 +221,7 @@ var _survey = (function () {
             console.log(survey)
             chrome.storage.sync.set({select_survey: survey});
             layerMsg('select success', 1, function () {
-                window.parent.postMessage('save_survey', '*');
+                window.parent.postMessage({key: 'save_survey'}, '*');
             });
         },
     };
@@ -281,7 +289,7 @@ var _autoAnswer = (function () {
                 ret2 = _autoAnswer.autoXpath(question.xpath);
             }
             if (question.answer.length > 0) {
-                ret3 = _autoAnswer.auroAnswer(question.answer);
+                ret3 = _autoAnswer.autoAnswer(question.answer);
             }
             if (0 == ret1 || 0 == ret2 || 0 == ret3) {
                 return false;
@@ -289,7 +297,7 @@ var _autoAnswer = (function () {
             return true;
         },
         ///寻找答案
-        auroAnswer: function (answer) {
+        autoAnswer: function (answer) {
             var flag = 1;
             $.each(answer, function (i, v) {
                 var dom = $(':contains("' + v + '")');
@@ -361,7 +369,7 @@ var _autoAnswer = (function () {
                     $(dom).attr('selected', true);
                     break;
                 case 'INPUT':
-                    _autoAnswer.input(dom, v[1]);
+                    _autoAnswer.input(dom, value);
                     break;
                 default:
                     $(dom).click();
@@ -481,11 +489,22 @@ $(document).ready(function () {
 });
 
 window.addEventListener('message', function (ev) {
-    if (ev.data == 'save_survey_cmd') {
+    if (ev.data.key == 'save_survey_cmd') {
         _survey.save();
     }
-    if (ev.data == 'save_question_cmd') {
+    if (ev.data.key == 'save_question_cmd') {
         _question.addQuestionSubmit();
+    }
+    if (ev.data.key == 'test_auto_question')  {
+        console.log(ev.data);
+        _autoAnswer.findAnswer(ev.data.question);
+    }
+    if (ev.data.key == 'get_auto_question') {
+        var params = _question.addQuestionSubmit(true);
+        window.parent.postMessage({
+            key: 'test_auto_question',
+            question: params
+        }, '*');
     }
 }, false)
 
