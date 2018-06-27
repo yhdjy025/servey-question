@@ -484,7 +484,7 @@ window.addEventListener('message', function (ev) {
     if (ev.data == 'save_survey_cmd') {
         _survey.save();
     }
-    if (ev.data == 'save_question_cms') {
+    if (ev.data == 'save_question_cmd') {
         _question.addQuestionSubmit();
     }
 }, false)
