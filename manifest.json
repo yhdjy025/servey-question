@@ -23,10 +23,6 @@
       "matches": [
         "<all_urls>"
       ],
-      "css": [
-        "css/theme/default/layer.css",
-        "css/app.css"
-      ],
       "js": [
         "js/app.js",
         "js/layer.js",
