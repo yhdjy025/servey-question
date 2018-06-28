@@ -2,6 +2,9 @@ var select_survey = 'https://survey.yhdjy.cn/chrome/selectSurvey';
 var find_question = 'https://survey.yhdjy.cn/chrome/findQuestion';
 var add_question = 'https://survey.yhdjy.cn/chrome/addQuestion';
 var times = null;
+if (typeof chrome == 'undefined') {
+    var chrome = browser;
+}
 layer.config({
     shade: false
 });
@@ -20,7 +23,7 @@ var _question = (function () {
     return {
         //添加题目弹框
         addQuestion: function (title) {
-            chrome.storage.sync.get('select_survey', function (data) {
+            chrome.storage.local.get('select_survey', function (data) {
                 if (data.select_survey) {
                     if (!title) {
                         title = _autoAnswer.getTitle(data.select_survey);
@@ -203,7 +206,7 @@ var _survey = (function () {
             })
             $.post(url, params, function (ret) {
                 if (ret.status == 1) {
-                    chrome.storage.sync.set({select_survey: ret.data});
+                    chrome.storage.local.set({select_survey: ret.data});
                     layerMsg(ret.msg, 1, function () {
                         window.parent.postMessage({key: 'save_survey'}, '*');
                     });
@@ -223,7 +226,7 @@ var _survey = (function () {
             }
             var survey = $(selected).data('survey');
             console.log(survey)
-            chrome.storage.sync.set({select_survey: survey});
+            chrome.storage.local.set({select_survey: survey});
             layerMsg('select success', 1, function () {
                 window.parent.postMessage({key: 'save_survey'}, '*');
             });
@@ -236,7 +239,7 @@ var _autoAnswer = (function () {
     $('body').on('mouseup', 'p,div,p,span', function () {
         var text = document.getSelection().toString();
         text = _autoAnswer.iGetInnerText(text);
-        chrome.storage.sync.get('survey_status', function (data) {
+        chrome.storage.local.get('survey_status', function (data) {
             if (data.survey_status && data.survey_status.select == 1 && window.isOpen == 0 && text != '') {
                 window.isOpen = 1;
                 window.getSelection().removeAllRanges();
@@ -248,9 +251,9 @@ var _autoAnswer = (function () {
     //舰艇开启自动执行
     $(function () {
         times = setInterval(function () {
-            chrome.storage.sync.get('survey_status', function (data) {
+            chrome.storage.local.get('survey_status', function (data) {
                 if (data.survey_status && data.survey_status.auto == 1) {
-                    chrome.storage.sync.get('select_survey', function (ret) {
+                    chrome.storage.local.get('select_survey', function (ret) {
                         if (!ret.select_survey) {
                             return false;
                         }
