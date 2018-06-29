@@ -1,7 +1,13 @@
 {
   "name": "Survey Tool",
-  "version": "1.0",
+  "version": "1.3",
   "description": "A survey tool for answer question autorize",
+    "applications": {
+    "gecko": {
+      "id": "generated-7nk55z1w1oidthpxx8dzzi@chrome-store-foxified-unsigned",
+      "strict_min_version": "42.0"
+    }
+  },
   "permissions": [
     "contextMenus",
     "tabs",
@@ -10,9 +16,6 @@
     "http://*/*",
     "https://*/*"
   ],
-  "options_ui": {
-    "page": "options.html"
-  },
   "background": {
     "scripts": [
       "js/background.js"
