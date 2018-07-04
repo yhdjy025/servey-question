@@ -2,6 +2,7 @@ var select_survey = 'https://survey.yhdjy.cn/chrome/selectSurvey';
 var find_question = 'https://survey.yhdjy.cn/chrome/findQuestion';
 var add_question = 'https://survey.yhdjy.cn/chrome/addQuestion';
 var times = null;
+var loading_flag = 0;
 if (typeof chrome == 'undefined') {
     var chrome = browser;
 }
@@ -70,6 +71,7 @@ var _question = (function () {
         },
         //添加题目提交
         addQuestionSubmit: function (returnParams) {
+            if (loading_flag == 1) return false;
             var url = $('#edit-form').attr('action');
             var params = {
                 _token: $('#edit-form').find('input[name=_token]').val(),
@@ -97,7 +99,11 @@ var _question = (function () {
             if (returnParams == true) {
                 return params;
             }
+            loading_flag = 1;
+            var loading_index = layer.load();
             $.post(url, params, function (ret) {
+                loading_flag = 0;
+                layer.close(loading_index);
                 if (ret.status == 1) {
                     layer.msg(ret.msg, {icon: 6}, function () {
                         window.parent.postMessage({key: 'save_question'}, '*');
@@ -198,13 +204,18 @@ var _survey = (function () {
         },
         //添加调查提交
         addSurveySubmit: function () {
+            if (loading_flag == 1) return false;
             var url = $('#edit-form').attr('action');
             var params = {};
             var foem = $('#edit-form').serializeArray();
             $.each(foem, function (i, v) {
                 params[v.name] = v.value;
             })
+            loading_flag = 1;
+            var loading_index = layer.load();
             $.post(url, params, function (ret) {
+                loading_flag = 0;
+                layer.close(loading_index);
                 if (ret.status == 1) {
                     chrome.storage.local.set({select_survey: ret.data});
                     layerMsg(ret.msg, 1, function () {
@@ -409,20 +420,11 @@ var _autoAnswer = (function () {
                         flag = 1;
                     }
                     break;
-                case 'text':
+                default:
                     if (!$(dom).val() != '') {
                         $(dom).val(value);
                         flag = 1;
                     }
-                    break;
-                case 'password':
-                    if (!$(dom).val() != '' && value != '') {
-                        $(dom).val(value);
-                        flag = 1;
-                    }
-                    break;
-                default:
-                    layerMsg('未找到', 0);
                     break;
             }
             if (flag == 1) {
