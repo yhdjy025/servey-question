@@ -1,6 +1,7 @@
 var select_survey = 'https://survey.yhdjy.cn/chrome/selectSurvey';
 var find_question = 'https://survey.yhdjy.cn/chrome/findQuestion';
 var add_question = 'https://survey.yhdjy.cn/chrome/addQuestion';
+var getInfo_url = 'https://survey.yhdjy.cn/chrome/getInfo';
 var times = null;
 var loading_flag = 0;
 if (typeof chrome == 'undefined') {
@@ -542,4 +543,58 @@ function layerMsg(msg, type, callback, time) {
                 callback();
         })
     }
+}
+//获取身份
+function getInfo(country, callback) {
+    var info = {};
+    var url = getInfo_url + '/' + country;
+    $.get(url, function(ret) {
+        var list = $(ret).find('.row.no-margin.no-padding.content')
+        $.each(list, function(index, el) {
+            var input = $(el).find('input');
+           switch (index) {
+               case 0:
+                   info.name = $(input).eq(0).val();
+                   info.sex = $(input).eq(1).val();
+                   break;
+                case 1:
+                    info.firstName = $(input).eq(0).val();
+                   info.lastName = $(input).eq(1).val();
+                    break;
+                case 3:
+                    info.birthday = $(input).eq(0).val();
+                    info.state = $(input).eq(1).val();
+                    break;
+                case 4:
+                    info.strsst = $(input).eq(0).val();
+                    break;
+                case 5:
+                    info.city = $(input).eq(0).val();
+                   info.phone = $(input).eq(1).val();
+                    break;
+                 case 6:
+                    info.zip = $(input).eq(0).val();
+                    info.fullState = $(input).eq(1).val();
+                    break;;
+                 case 8:
+                    info.ssn = $(input).eq(0).val();
+                   info.password = $(input).eq(1).val();
+                   break;;
+                 case 9:
+                    info.cardType = $(input).eq(0).val();
+                   info.card = $(input).eq(1).val();
+                   break;
+                 case 10:
+                    info.cvv2 = $(input).eq(0).val();
+                   info.date = $(input).eq(1).val();
+                   break;
+               default:
+                   // statements_def
+                   break;
+           }
+        });
+        if (typeof callback == 'function') {
+            callback(info)
+        }
+    });
 }
