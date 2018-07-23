@@ -11,17 +11,47 @@ layer.config({
     shade: false
 });
 window.isOpen = 0;
+window.isOpenSelector = 0;
 
 var _question = (function () {
+    //添加一个答案
     $('body').on('click', '#edit-form .add-input', function () {
         var type = $(this).data('type');
         _question.addInput(this, type);
     })
-
+    //删掉一个答案
     $('body').on('click', '#edit-form .remove-input', function () {
         _question.removeInput(this);
     })
+    //获取点击元素的xpath
+    $('body').on('click', '#edit-form .get-xpath,#edit-form .get-answer,#edit-form .get-title', function () {
+        if ($(this).hasClass('get-xpath')) {
+            _question.getClickDom(this, 'xpath');
+        } else if ($(this).hasClass('get-answer')) {
+            _question.getClickDom(this, 'answer');
+        } else if ($(this).hasClass('get-title'))  {
+            _question.getClickDom(this, 'title');
+        }
 
+    })
+    //鉴定点击元素，并取得xpath
+    $('*').on('click', function (e) {
+        if (window.isOpenSelector == 1) {
+            e.stopPropagation();//停止冒泡
+            var xpath = _autoAnswer.readXPath(this);
+            var text = $(this).text();
+            _autoAnswer.closeSelector();
+            var iframe = $('iframe');
+            iframe[0].contentWindow.postMessage({
+                key: 'send_click_value',
+                xpath: xpath,
+                text: text
+            }, '*');
+            return false;
+        } else {
+            return true;
+        }
+    });
     return {
         //添加题目弹框
         addQuestion: function (title) {
@@ -119,17 +149,19 @@ var _question = (function () {
         //添加一个答案
         addInput: function (obj, type) {
             if (1 == type) {
-                var input = '<div class="input-group form-group">\n' +
+                var input = '<div class="input-group form-group">' +
                     '<div class="col-xs-6"><input type="text" name="xpath" class="form-control input-sm" value="" placeholder="xpath"></div>' +
                     '<div class="col-xs-6"><input type="text" name="value" class="form-control input-sm" value="" placeholder="值，填空需要"></div>' +
                     '<span class="input-group-btn">' +
+                    '<button class="btn btn-info btn-sm get-xpath">获取</button>' +
                     '<button class="btn btn-danger btn-sm remove-input">删除</button>' +
                     '</span>' +
                     '</div>';
             } else {
-                var input = '<div class="input-group form-group">\n' +
+                var input = '<div class="input-group form-group">' +
                     '<input type="text" name="answer" class="form-control input-sm" value="" placeholder="答案">' +
                     '<span class="input-group-btn">' +
+                    '<button class="btn btn-info btn-sm get-answer">获取</button>' +
                     '<button class="btn btn-danger btn-sm remove-input">删除</button>' +
                     '</span>' +
                     '</div>';
@@ -139,10 +171,29 @@ var _question = (function () {
         //删除答案
         removeInput: function (obj) {
             $(obj).parents('.input-group').remove();
+        },
+        getClickDom: function (obj, type) {
+            window.parent.postMessage({key: 'get_click_dom'}, '*');
+            window.addEventListener('message', function (ev) {
+                if (ev.data.key == 'send_click_value') {
+                    switch (type) {
+                        case 'xpath':
+                            $(obj).parents('.input-group').find('input[name=xpath]').val(ev.data.xpath);
+                            break;
+                            console.log(ev.data.text)
+                            var text = _autoAnswer.iGetInnerText(ev.data.text);
+                            $(obj).parents('.input-group').find('input[name=answer]').val(text);
+                            break;
+                        case 'title':
+                            var text = _autoAnswer.iGetInnerText(ev.data.text);
+                            $(obj).parents('.input-group').find('input[name=title]').val(text);
+                            break;
+                    }
+                }
+            }, false)
         }
     };
 })();
-
 
 var _survey = (function () {
     //搜索调查
@@ -276,7 +327,6 @@ var _autoAnswer = (function () {
             })
         }, 1000);
     })
-
     return {
         //找题目
         findQuestion: function (title, callback) {
@@ -396,6 +446,12 @@ var _autoAnswer = (function () {
                 case 'INPUT':
                     _autoAnswer.input(dom, value);
                     break;
+                case 'SELECT':
+                    $(dom).val(value)
+                    break;
+                case 'TEXTAREA':
+                    $(dom).val(value)
+                    break;
                 default:
                     $(dom).click();
                     break;
@@ -489,6 +545,48 @@ var _autoAnswer = (function () {
             resultStr = testStr.replace(/[ ]/g, "");    //去掉空格
             resultStr = testStr.replace(/[\r\n]/g, ""); //去掉回车换行
             return resultStr;
+        },
+
+        readXPath: function (element) {
+            if (element.id !== "") {//判断id属性，如果这个元素有id，则显 示//*[@id="xPath"]  形式内容
+                return '//*[@id=\"' + element.id + '\"]';
+            }
+            //这里需要需要主要字符串转译问题，可参考js 动态生成html时字符串和变量转译（注意引号的作用）
+            if (element == document.body) {//递归到body处，结束递归
+                return '/html/' + element.tagName.toLowerCase();
+            }
+            var ix = 1,//在nodelist中的位置，且每次点击初始化
+                siblings = element.parentNode.childNodes;//同级的子元素
+
+            for (var i = 0, l = siblings.length; i < l; i++) {
+                var sibling = siblings[i];
+                //如果这个元素是siblings数组中的元素，则执行递归操作
+                if (sibling == element) {
+                    return arguments.callee(element.parentNode) + '/' + element.tagName.toLowerCase() + '[' + (ix) + ']';
+                    //如果不符合，判断是否是element元素，并且是否是相同元素，如果是相同的就开始累加
+                } else if (sibling.nodeType == 1 && sibling.tagName == element.tagName) {
+                    ix++;
+                }
+            }
+        },
+        openSelector: function () {
+            window.isOpenSelector = 1;
+            var px_line = '<p id="px_line" style="width:100%;top: 0;z-index:999999;left: 0;height:1px;position:fixed;background:red;"></p>';
+            var py_line = '<p id="py_line" style="height:100%;top: 0;z-index:999999;left: 0;width:1px;position:fixed;background:red;"></p>';
+            $('body').append(px_line)
+            $('body').append(py_line);
+            $(document).on('mousemove', function (e) {
+                var e = e || event;
+                var x = e.clientX;
+                var y = e.clientY;
+                $('#px_line').css('top', (y + 2) + 'px');
+                $('#py_line').css('left', (x - 2) + 'px');
+            });
+        },
+        closeSelector: function () {
+            window.isOpenSelector = 0;
+            $('body').find('#px_line').remove();
+            $('body').find('#py_line').remove();
         }
     };
 })()
@@ -527,6 +625,10 @@ window.addEventListener('message', function (ev) {
             question: params
         }, '*');
     }
+    //获取点击元素的xpath命令
+    if (ev.data.key == 'get_click_dom') {
+        _autoAnswer.openSelector();
+    }
 }, false)
 
 //弹出提示
@@ -544,22 +646,23 @@ function layerMsg(msg, type, callback, time) {
         })
     }
 }
+
 //获取身份
 function getInfo(country, callback) {
     var info = {};
     var url = getInfo_url + '/' + country;
-    $.get(url, function(ret) {
+    $.get(url, function (ret) {
         var list = $(ret).find('.row.no-margin.no-padding.content')
-        $.each(list, function(index, el) {
+        $.each(list, function (index, el) {
             var input = $(el).find('input');
-           switch (index) {
-               case 0:
-                   info.name = $(input).eq(0).val();
-                   info.sex = $(input).eq(1).val();
-                   break;
+            switch (index) {
+                case 0:
+                    info.name = $(input).eq(0).val();
+                    info.sex = $(input).eq(1).val();
+                    break;
                 case 1:
                     info.firstName = $(input).eq(0).val();
-                   info.lastName = $(input).eq(1).val();
+                    info.lastName = $(input).eq(1).val();
                     break;
                 case 3:
                     info.birthday = $(input).eq(0).val();
@@ -570,28 +673,30 @@ function getInfo(country, callback) {
                     break;
                 case 5:
                     info.city = $(input).eq(0).val();
-                   info.phone = $(input).eq(1).val();
+                    info.phone = $(input).eq(1).val();
                     break;
-                 case 6:
+                case 6:
                     info.zip = $(input).eq(0).val();
                     info.fullState = $(input).eq(1).val();
-                    break;;
-                 case 8:
+                    break;
+                    ;
+                case 8:
                     info.ssn = $(input).eq(0).val();
-                   info.password = $(input).eq(1).val();
-                   break;;
-                 case 9:
+                    info.password = $(input).eq(1).val();
+                    break;
+                    ;
+                case 9:
                     info.cardType = $(input).eq(0).val();
-                   info.card = $(input).eq(1).val();
-                   break;
-                 case 10:
+                    info.card = $(input).eq(1).val();
+                    break;
+                case 10:
                     info.cvv2 = $(input).eq(0).val();
-                   info.date = $(input).eq(1).val();
-                   break;
-               default:
-                   // statements_def
-                   break;
-           }
+                    info.date = $(input).eq(1).val();
+                    break;
+                default:
+                    // statements_def
+                    break;
+            }
         });
         if (typeof callback == 'function') {
             callback(info)
