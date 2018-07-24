@@ -2,51 +2,24 @@ var select_survey = 'https://survey.yhdjy.cn/chrome/selectSurvey';
 var find_question = 'https://survey.yhdjy.cn/chrome/findQuestion';
 var add_question = 'https://survey.yhdjy.cn/chrome/addQuestion';
 var getInfo_url = 'https://survey.yhdjy.cn/chrome/getInfo';
-var times = null;
-var loading_flag = 0;
-if (typeof chrome == 'undefined') {
-    var chrome = browser;
-}
+
 layer.config({
     shade: false
 });
 window.isOpen = 0;
 window.isOpenSelector = 0;
-
+var helper = new Helper();
+helper.onCall();
 var _question = (function () {
-    //添加一个答案
-    $('body').on('click', '#edit-form .add-input', function () {
-        var type = $(this).data('type');
-        _question.addInput(this, type);
-    })
-    //删掉一个答案
-    $('body').on('click', '#edit-form .remove-input', function () {
-        _question.removeInput(this);
-    })
-    //获取点击元素的xpath
-    $('body').on('click', '#edit-form .get-xpath,#edit-form .get-answer,#edit-form .get-title', function () {
-        if ($(this).hasClass('get-xpath')) {
-            _question.getClickDom(this, 'xpath');
-        } else if ($(this).hasClass('get-answer')) {
-            _question.getClickDom(this, 'answer');
-        } else if ($(this).hasClass('get-title'))  {
-            _question.getClickDom(this, 'title');
-        }
 
-    })
-    //鉴定点击元素，并取得xpath
+    //鉴定点击元素，并取得xpath和text
     $('*').on('click', function (e) {
         if (window.isOpenSelector == 1) {
             e.stopPropagation();//停止冒泡
             var xpath = _autoAnswer.readXPath(this);
             var text = $(this).text();
-            _autoAnswer.closeSelector();
-            var iframe = $('iframe');
-            iframe[0].contentWindow.postMessage({
-                key: 'send_click_value',
-                xpath: xpath,
-                text: text
-            }, '*');
+            helper.closeSelector();
+            helper.callIframe(helper.getiframeWindow(), '_iquestion.writeClickResult', {xpath: xpath, text: text});
             return false;
         } else {
             return true;
@@ -59,7 +32,6 @@ var _question = (function () {
                 if (data.select_survey) {
                     if (!title) {
                         title = _autoAnswer.getTitle(data.select_survey);
-                        console.log(title)
                     }
                     var url = add_question + '/' + data.select_survey.id + '?title=' + (title ? title : '');
                     layer.open({
@@ -146,54 +118,20 @@ var _question = (function () {
                 }
             })
         },
-        //添加一个答案
-        addInput: function (obj, type) {
-            if (1 == type) {
-                var input = '<div class="input-group form-group">' +
-                    '<div class="col-xs-6"><input type="text" name="xpath" class="form-control input-sm" value="" placeholder="xpath"></div>' +
-                    '<div class="col-xs-6"><input type="text" name="value" class="form-control input-sm" value="" placeholder="值，填空需要"></div>' +
-                    '<span class="input-group-btn">' +
-                    '<button class="btn btn-info btn-sm get-xpath">获取</button>' +
-                    '<button class="btn btn-danger btn-sm remove-input">删除</button>' +
-                    '</span>' +
-                    '</div>';
-            } else {
-                var input = '<div class="input-group form-group">' +
-                    '<input type="text" name="answer" class="form-control input-sm" value="" placeholder="答案">' +
-                    '<span class="input-group-btn">' +
-                    '<button class="btn btn-info btn-sm get-answer">获取</button>' +
-                    '<button class="btn btn-danger btn-sm remove-input">删除</button>' +
-                    '</span>' +
-                    '</div>';
-            }
-            $(obj).parent('.form-group').before(input);
-        },
         //删除答案
         removeInput: function (obj) {
             $(obj).parents('.input-group').remove();
         },
-        getClickDom: function (obj, type) {
-            window.parent.postMessage({key: 'get_click_dom'}, '*');
-            window.addEventListener('message', function (ev) {
-                if (ev.data.key == 'send_click_value') {
-                    switch (type) {
-                        case 'xpath':
-                            $(obj).parents('.input-group').find('input[name=xpath]').val(ev.data.xpath);
-                            break;
-                            console.log(ev.data.text)
-                            var text = _autoAnswer.iGetInnerText(ev.data.text);
-                            $(obj).parents('.input-group').find('input[name=answer]').val(text);
-                            break;
-                        case 'title':
-                            var text = _autoAnswer.iGetInnerText(ev.data.text);
-                            $(obj).parents('.input-group').find('input[name=title]').val(text);
-                            break;
-                    }
-                }
-            }, false)
+        /**
+         * 获取点击元素
+         * @param params
+         */
+        getClickDom: function () {
+            helper.openSelector();
         }
     };
 })();
+
 
 var _survey = (function () {
     //搜索调查
@@ -288,7 +226,6 @@ var _survey = (function () {
                 return false;
             }
             var survey = $(selected).data('survey');
-            console.log(survey)
             chrome.storage.local.set({select_survey: survey});
             layerMsg('select success', 1, function () {
                 window.parent.postMessage({key: 'save_survey'}, '*');
@@ -343,9 +280,7 @@ var _autoAnswer = (function () {
                     window.isOpen = 0;
                     layerMsg('题目找到了,正在识别...', 1, function () {
                         var res = _autoAnswer.findAnswer(ret.data);
-                        console.log(res);
                         if (res == true && typeof  callback == 'function') {
-                            console.log(callback);
                             callback();
                         }
                     }, 1500);
@@ -354,7 +289,6 @@ var _autoAnswer = (function () {
         },
         //找答案入口
         findAnswer: function (question) {
-            console.log(question)
             var ret1 = 1, ret2 = 1, ret3 = 1;
             if (question.script != '') {
                 ret1 = _autoAnswer.autoScript(question.script)
@@ -435,7 +369,6 @@ var _autoAnswer = (function () {
         //对答案不同类型的dom做处理
         dom: function (dom, value) {
             var tagName = $(dom).prop('tagName');
-            console.log(dom)
             switch (tagName) {
                 case 'OPTION':
                     if ($(dom).is(':selected')) {
@@ -505,11 +438,9 @@ var _autoAnswer = (function () {
         },
         //获取题目标题，根据调查里的配置
         getTitle: function (survey) {
-            console.log(survey)
             var title = '';
             if (survey.before != '') {
                 eval(survey.before);
-                console.log(title)
             }
             if (survey.get_title != '' && title == '') {
                 if (survey.get_title.indexOf('@') == 0) {
@@ -520,7 +451,6 @@ var _autoAnswer = (function () {
                 if (dom.length > 0) {
                     title = $(dom).text();
                 }
-                console.log(title)
             }
             return title;
         },
@@ -613,7 +543,6 @@ window.addEventListener('message', function (ev) {
     }
     //用于测试添加的答案是否可用 来自iframe
     if (ev.data.key == 'test_auto_question') {
-        console.log(ev.data);
         _autoAnswer.findAnswer(ev.data.question);
     }
     //获取题目答案数据 来自主页面的通知
