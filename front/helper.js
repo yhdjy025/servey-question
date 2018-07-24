@@ -1,3 +1,7 @@
+var select_survey = 'https://survey.yhdjy.cn/chrome/selectSurvey';
+var find_question = 'https://survey.yhdjy.cn/chrome/findQuestion';
+var add_question = 'https://survey.yhdjy.cn/chrome/addQuestion';
+var getInfo_url = 'https://survey.yhdjy.cn/chrome/getInfo';
 //为兼容firefox和chrome
 if (typeof chrome == 'undefined') {
     var chrome = browser;
@@ -29,11 +33,13 @@ class Helper {
         $('body').append(px_line)
         $('body').append(py_line);
         $(document).on('mousemove', function (e) {
-            var e = e || event;
-            var x = e.clientX;
-            var y = e.clientY;
-            $('#px_line').css('top', (y + 2) + 'px');
-            $('#py_line').css('left', (x - 2) + 'px');
+            if (window.isOpenSelector = 1) {
+                var e = e || event;
+                var x = e.clientX;
+                var y = e.clientY;
+                $('#px_line').css('top', (y + 2) + 'px');
+                $('#py_line').css('left', (x - 2) + 'px');
+            }
         });
     }
 
@@ -66,7 +72,7 @@ class Helper {
             var sibling = siblings[i];
             //如果这个元素是siblings数组中的元素，则执行递归操作
             if (sibling == element) {
-                return arguments.callee(element.parentNode) + '/' + element.tagName.toLowerCase() + '[' + (ix) + ']';
+                return this.getDomXpath(element.parentNode) + '/' + element.tagName.toLowerCase() + '[' + (ix) + ']';
                 //如果不符合，判断是否是element元素，并且是否是相同元素，如果是相同的就开始累加
             } else if (sibling.nodeType == 1 && sibling.tagName == element.tagName) {
                 ix++;
@@ -95,12 +101,16 @@ class Helper {
      * @param params
      * @param domain
      */
-    callTop(toWindow, method, params = {}, domain = '*') {
-        this.postMessage(toWindow, 'callTop', {method :method, params: params});
+    callTop(method, params = {}, domain = '*') {
+        if (!window.parent) return false;
+
+        this.postMessage(window.parent, 'callTop', {method: method, params: params}, domain);
     }
 
-    callIframe(toWindow, method, params = {}, domain = '*') {
-        this.postMessage(toWindow, 'callIframe', {method :method, params: params});
+    callIframe(method, params = {}, domain = '*') {
+        var iframe = this.getiframeWindow();
+        if (!iframe) return false;
+        this.postMessage(iframe, 'callIframe', {method: method, params: params}, domain);
     }
 
     /**
@@ -109,29 +119,17 @@ class Helper {
     onCall() {
         var _this = this;
         window.addEventListener('message', function (ev) {
-            console.log(ev)
-            if (ev.data.key == 'callTop' || ev.data.key == 'callIframe') {
+            if (ev.data.key == window.callFunction) {
                 var method = ev.data.data.method.split('.');
                 var fun = window;
-                for (var i=0; i<method.length; i++) {
+                for (var i = 0; i < method.length; i++) {
                     fun = fun[method[i]];
                 }
                 if (typeof fun == 'function') {
-                    var result = fun(ev.data.data.params);
-                    if (result) {
-                        if (result.key) {
-                            _this.postMessage(ev.source, result.key, result.data);
-                        }
-                        if (result.method)  {
-                            if (ev.data.key == 'callTop')
-                                _this.callIframe(ev.source, result.method, result.params);
-                            if (ev.data.key == 'callIframe')
-                                _this.callIframe(ev.source, result.method, result.params);
-                        }
-                    }
+                    fun(ev.data.data.params);
                 }
             }
-        });
+        }, false);
     }
 
     /**
@@ -151,7 +149,10 @@ class Helper {
      */
     getiframeWindow() {
         var iframe = $('iframe');
-        return iframe[0].contentWindow;
+        if (iframe.length == 0)
+            return false;
+        else
+            return iframe[0].contentWindow;
     }
 
     /**
@@ -176,4 +177,97 @@ class Helper {
             }
         });
     }
+
+    /**
+     * 关闭所有弹窗
+     */
+    closeLayer() {
+        layer.closeAll();
+        window.isOpen = 0;
+    }
+
+    /**
+     * 打印消息
+     * @param msg
+     * @param type
+     * @param callback
+     * @param time
+     */
+    layerMsg(msg, type = 0, callback = null, time = 300) {
+        if (1 == type) {
+            layer.msg(msg, {icon: 6, shade: 0.2, time: time}, function () {
+                if (typeof callback == 'function')
+                    callback();
+            })
+        } else {
+            layer.msg(msg, {icon: 5, shade: 0.2, time: 1500}, function () {
+                if (typeof callback == 'function')
+                    callback();
+            })
+        }
+    }
+
+    /**
+     * 获取身份
+     * @param country
+     * @param callback
+     */
+    getInfo(country, callback) {
+        var info = {};
+        var url = getInfo_url + '/' + country;
+        $.get(url, function (ret) {
+            var list = $(ret).find('.row.no-margin.no-padding.content')
+            $.each(list, function (index, el) {
+                var input = $(el).find('input');
+                switch (index) {
+                    case 0:
+                        info.name = $(input).eq(0).val();
+                        info.sex = $(input).eq(1).val();
+                        break;
+                    case 1:
+                        info.firstName = $(input).eq(0).val();
+                        info.lastName = $(input).eq(1).val();
+                        break;
+                    case 3:
+                        info.birthday = $(input).eq(0).val();
+                        info.state = $(input).eq(1).val();
+                        break;
+                    case 4:
+                        info.strsst = $(input).eq(0).val();
+                        break;
+                    case 5:
+                        info.city = $(input).eq(0).val();
+                        info.phone = $(input).eq(1).val();
+                        break;
+                    case 6:
+                        info.zip = $(input).eq(0).val();
+                        info.fullState = $(input).eq(1).val();
+                        break;
+                        ;
+                    case 8:
+                        info.ssn = $(input).eq(0).val();
+                        info.password = $(input).eq(1).val();
+                        break;
+                        ;
+                    case 9:
+                        info.cardType = $(input).eq(0).val();
+                        info.card = $(input).eq(1).val();
+                        break;
+                    case 10:
+                        info.cvv2 = $(input).eq(0).val();
+                        info.date = $(input).eq(1).val();
+                        break;
+                    default:
+                        // statements_def
+                        break;
+                }
+            });
+            if (typeof callback == 'function') {
+                callback(info)
+            }
+        });
+    }
 }
+
+var helper = new Helper();
+helper.onCall();
