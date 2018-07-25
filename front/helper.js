@@ -267,6 +267,10 @@ class Helper {
             }
         });
     }
+
+    getSimlar(obj) {
+
+    }
 }
 
 var helper = new Helper();

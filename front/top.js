@@ -18,7 +18,7 @@ var _question = (function () {
                 text: $(this).text()
             };
             //关闭坐标
-            _autoAnswer.closeSelector();
+            helper.closeSelector();
             //把数据传回iframe
             helper.callIframe('_iquestion.writeClickResult', params);
             return false;
@@ -75,7 +75,7 @@ var _question = (function () {
          * @param params
          */
         getClickDom: function () {
-            _autoAnswer.openSelector();
+            helper.openSelector();
         }
     };
 })();
