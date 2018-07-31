@@ -14,7 +14,7 @@ var _iquestion = (function () {
         $(this).parents('.input-group').remove();
     })
     //获取点击元素的xpath
-    $('body').on('click', '#edit-form .get-xpath,#edit-form .get-answer,#edit-form .get-title', function () {
+    $('body').on('click', '#edit-form .get-xpath,#edit-form .get-answer,#edit-form .get-title,#edit-form .get-random', function () {
         window.writeClickDom = this;
         helper.callTop('_question.getClickDom');
     })
@@ -55,6 +55,8 @@ var _iquestion = (function () {
 
             } else if ($(dom).hasClass('get-title')) {
                 $(dom).parents('.input-group').find('input[name=title]').val(params.text);
+            } else if ($(dom).hasClass('get-random')) {
+                helper.callTop('_question.getRandom', {xpath:params.xpath})
             }
         },
         //添加题目提交

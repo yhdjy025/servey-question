@@ -15,10 +15,11 @@ var _question = (function () {
             //取xpath
             var params = {
                 xpath: helper.getDomXpath(this),
-                text: $(this).text()
+                text: $(this).text(),
             };
             //关闭坐标
             helper.closeSelector();
+            console.log(window.isOpenSelector)
             //把数据传回iframe
             helper.callIframe('_iquestion.writeClickResult', params);
             return false;
@@ -68,6 +69,12 @@ var _question = (function () {
                     return false;
                 }
             })
+        },
+
+        getRandom: function(params) {
+            console.log(params)
+            var dom = helper.parseXpath(params.xpath);
+            $(dom).css('border', '1px solid red');
         },
 
         /**
@@ -148,13 +155,14 @@ var _autoAnswer = (function () {
         autoSurvey: function (survey) {
             var title = _autoAnswer.getTitle(survey);
             if (title == '') {
+                _autoAnswer.getNext(survey);
                 return false;
             }
             clearInterval(times);
             _autoAnswer.findQuestion(title, function () {
                 setTimeout(function () {
                     _autoAnswer.getNext(survey);
-                }, 300);
+                }, 1000);
             });
         },
         //获取题目标题，根据调查里的配置
@@ -173,6 +181,7 @@ var _autoAnswer = (function () {
                     title = $(dom).text();
                 }
             }
+            title = helper.iGetInnerText(title);
             return title;
         },
         //找题目
@@ -251,7 +260,7 @@ var _autoAnswer = (function () {
         autoXpath: function (xpath) {
             var flag = 1;
             $.each(xpath, function (i, v) {
-                var dom = helper.getDomXpath(v[0]);
+                var dom = helper.parseXpath(v[0]);
                 if (dom.length == 0) {
                     flag = 0;
                     return true;
@@ -297,7 +306,7 @@ var _autoAnswer = (function () {
             switch (type) {
                 case 'checkbox':
                     if (!$(dom).is(':checked')) {
-                        $(dom).attr('checked', true);
+                        //$(dom).attr('checked', true);
                         $(dom).click();
                         flag = 1;
                     }

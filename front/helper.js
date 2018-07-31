@@ -19,7 +19,7 @@ class Helper {
     iGetInnerText(testStr) {
         var resultStr = testStr.replace(/\ +/g, ""); //去掉空格
         resultStr = testStr.replace(/[ ]/g, "");    //去掉空格
-        resultStr = testStr.replace(/[\r\n]/g, ""); //去掉回车换行
+        resultStr = testStr.replace(/[\r\n\t]/g, ""); //去掉回车换行
         return resultStr;
     }
 
@@ -84,8 +84,8 @@ class Helper {
      * 通过xpath找到指定元素
      * @returns {Array}
      */
-    pardeXpath() {
-        var xresult = document.evaluate(STR_XPATH, document, null, XPathResult.ANY_TYPE, null);
+    parseXpath(xpath) {
+        var xresult = document.evaluate(xpath, document, null, XPathResult.ANY_TYPE, null);
         var xnodes = [];
         var xres;
         while (xres = xresult.iterateNext()) {
@@ -158,10 +158,12 @@ class Helper {
     /**
      * 存储
      * @param key   键
-     * @param fata  值
+     * @param data  值
      */
-    setStorage(key, fata) {
-        chrome.storage.local.set({key: fata});
+    setStorage(key, data) {
+        var param = {};
+        param[key] = data;
+        chrome.storage.local.set(param);
     }
 
     /**
