@@ -1,25 +1,23 @@
-
 layer.config({
     shade: false
 });
 window.isOpen = 0;
-window.isOpenSelector = 0;
 window.callFunction = 'callTop';
 var times = null;
+var autoAnswerFlag = 0;
 
 var _question = (function () {
     //鉴定点击元素，并取得xpath和text
     $('*').on('click', function (e) {
-        if (window.isOpenSelector == 1) {
+        if (helper.isOpenSelector()) {
             e.stopPropagation();//停止冒泡
             //取xpath
             var params = {
                 xpath: helper.getDomXpath(this),
-                text: $(this).text(),
+                text: helper.iGetInnerText($(this).text()),
             };
             //关闭坐标
             helper.closeSelector();
-            console.log(window.isOpenSelector)
             //把数据传回iframe
             helper.callIframe('_iquestion.writeClickResult', params);
             return false;
@@ -39,7 +37,7 @@ var _question = (function () {
                     layer.open({
                         type: 2,
                         title: '添加题目',
-                        area: ['700px', '400px'],
+                        area: ['700px', '440px'],
                         btn: ['确定', '测试', '取消'],
                         maxmin: true,
                         moveOut: true,
@@ -70,11 +68,62 @@ var _question = (function () {
                 }
             })
         },
-
-        getRandom: function(params) {
-            console.log(params)
+        //随机单选
+        getRandom: function (params) {
             var dom = helper.parseXpath(params.xpath);
-            $(dom).css('border', '1px solid red');
+            var checkbox = $(dom).find('input[type=checkbox],input[type=radio]');
+            if (checkbox.length > 0) {
+                var name = checkbox.eq(0).attr('name');
+                $('body').find('.select-num-flag').remove();
+                var allSelect = $('body').find('input[name="'+name+'"]');
+                allSelect.removeAttr('checked');
+                var randomSelect = helper.randomArr(allSelect, params.except);
+                $(allSelect).each(function (i, v) {
+                    $(v).parent().prepend('<font class="select-num-flag" color="red">'+(i)+'</font>')
+                })
+                $(randomSelect).attr('checked', true);
+                return 1;
+            }
+            return 0;
+        },
+        //随机多选
+        getRandoms: function(params) {
+            var dom = helper.parseXpath(params.xpath);
+            var checkbox = $(dom).find('input[type=checkbox]');
+            if (checkbox.length > 0) {
+                var name = checkbox.eq(0).attr('name');
+                $('body').find('.select-num-flag').remove();
+                var allSelect = $('body').find('input[name="'+name+'"]');
+                allSelect.removeAttr('checked');
+                var randomSelect = helper.randomArrs(allSelect, params.except);
+                $(allSelect).each(function (i, v) {
+                    $(v).parent().prepend('<font class="select-num-flag" color="red">'+(i)+'</font>')
+                })
+                $(randomSelect).attr('checked', true);
+                return 1;
+            }
+            return 0;
+        },
+        //全选
+        getAll: function(params) {
+            var dom = helper.parseXpath(params.xpath);
+            var checkbox = $(dom).find('input[type=checkbox]');
+            if (checkbox.length > 0) {
+                var name = checkbox.eq(0).attr('name');
+                $('body').find('.select-num-flag').remove();
+                var allSelect = $('body').find('input[name="'+name+'"]');
+                allSelect.removeAttr('checked');
+                var selected = [];
+                $(allSelect).each(function (i, v) {
+                    $(v).parent().prepend('<font class="select-num-flag" color="red">'+(i)+'</font>');
+                    if (params.except.indexOf(i.toString()) == -1) {
+                        selected.push(v);
+                    }
+                })
+                $(selected).attr('checked', true);
+                return 1;
+            }
+            return 0;
         },
 
         /**
@@ -106,18 +155,42 @@ var _survey = (function () {
                 type: 2,
                 title: '选择调查',
                 area: ['700px', '400px'],
-                btn: ['确定', '取消'],
+                btn: ['确定', '测试','取消'],
                 maxmin: true,
                 moveOut: true,
                 content: select_survey,
-                yes: function (index) {
+                btn1: function () {
                     helper.callIframe('_isurvey.save');
-
                     window.isOpen = 0;
                     return false;
+                },
+                btn2:function () {
+                    helper.callIframe('_isurvey.save', 1);
+                    return false;
+                },
+                btn3: function (index) {
+                    layer.close(index);
+                    window.isOpen = 0
+                },
+                cancel: function (index) {
+                    layer.close(index);
+                    window.isOpen = 0
                 }
             })
         },
+        /**
+         * 测试调查
+         * @param survey
+         * @returns {boolean}
+         */
+        testSurvey: function (survey) {
+            if (helper.isEmpty(survey)) return false;
+            helper.layerMsg(_autoAnswer.getTitle(survey));
+            if (survey.next != '') {
+                $(survey.next).css('border', '2px solid red');
+            }
+            return false;
+        }
     };
 })();
 
@@ -151,6 +224,18 @@ var _autoAnswer = (function () {
         }, 1000);
     })
     return {
+        start: function () {
+            if (autoAnswerFlag == 1 || window.isOpen == 1) {
+                return false;
+            }
+            helper.getStorage('select_survey', function (survey) {
+                if (!survey) {
+                    return false;
+                }
+                if (helper.isEmpty(survey)) return false;
+                _autoAnswer.autoSurvey(survey);
+            })
+        },
         //自动识别入口
         autoSurvey: function (survey) {
             var title = _autoAnswer.getTitle(survey);
@@ -159,9 +244,11 @@ var _autoAnswer = (function () {
                 return false;
             }
             clearInterval(times);
+            autoAnswerFlag == 1;
             _autoAnswer.findQuestion(title, function () {
                 setTimeout(function () {
                     _autoAnswer.getNext(survey);
+                    autoAnswerFlag == 0;
                 }, 1000);
             });
         },
@@ -208,7 +295,7 @@ var _autoAnswer = (function () {
         },
         //找答案入口
         findAnswer: function (question) {
-            var ret1 = 1, ret2 = 1, ret3 = 1;
+            var ret1 = 1, ret2 = 1, ret3 = 1,ret4 = 1;
             if (question.script != '') {
                 ret1 = _autoAnswer.autoScript(question.script)
             }
@@ -218,7 +305,23 @@ var _autoAnswer = (function () {
             if (question.answer.length > 0) {
                 ret3 = _autoAnswer.autoAnswer(question.answer);
             }
-            if (0 == ret1 || 0 == ret2 || 0 == ret3) {
+            if (question.random && question.random.type)  {
+                switch(question.random.type) {
+                    case 'random':
+                        ret4 = _question.getRandom(question.random);
+                        break;
+                    case 'randoms':
+                        ret4 = _question.getRandoms(question.random);
+                        break;
+                    case 'all':
+                        ret4 = _question.getAll(question.random);
+                        break;
+                    default:
+                        ret4 = 0;
+                        break;
+                }
+            }
+            if (0 == ret1 || 0 == ret2 || 0 == ret3 || 0 == ret4) {
                 return false;
             }
             return true;
@@ -294,7 +397,9 @@ var _autoAnswer = (function () {
                     $(dom).val(value)
                     break;
                 default:
-                    $(dom).click();
+                    if ($(dom).find('input[type=checkbox]:checked').length == 0) {
+                        $(dom).click();
+                    }
                     break;
             }
             $(dom).css('border', '1px solid red');
@@ -306,15 +411,13 @@ var _autoAnswer = (function () {
             switch (type) {
                 case 'checkbox':
                     if (!$(dom).is(':checked')) {
-                        //$(dom).attr('checked', true);
-                        $(dom).click();
+                        $(dom).attr('checked', true);
                         flag = 1;
                     }
                     break;
                 case 'radio':
                     if (!$(dom).is(':checked')) {
-                        $(dom).attr('checked', true);
-                        $(dom).click();
+                        $(dom).click()
                         flag = 1;
                     }
                     break;

@@ -8,14 +8,19 @@
     "activeTab",
     "declarativeContent",
     "storage",
+    "webRequest",
+    "browsingData",
+    "webRequestBlocking",
+    "downloads",
     "http://*/*",
     "https://*/*"
   ],
   "background": {
     "scripts": [
+      "background/helper.js",
       "background/background.js"
     ],
-    "persistent": false
+    "persistent": true
   },
   "content_scripts": [
     {

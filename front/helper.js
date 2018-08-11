@@ -27,13 +27,12 @@ class Helper {
      * 打开选择坐标
      */
     openSelector() {
-        window.isOpenSelector = 1;
         var px_line = '<p id="px_line" style="width:100%;top: 0;z-index:999999;left: 0;height:1px;position:fixed;background:red;"></p>';
         var py_line = '<p id="py_line" style="height:100%;top: 0;z-index:999999;left: 0;width:1px;position:fixed;background:red;"></p>';
         $('body').append(px_line)
         $('body').append(py_line);
         $(document).on('mousemove', function (e) {
-            if (window.isOpenSelector = 1) {
+            if (helper.isOpenSelector()) {
                 var e = e || event;
                 var x = e.clientX;
                 var y = e.clientY;
@@ -47,9 +46,20 @@ class Helper {
      * 关闭选择坐标
      */
     closeSelector() {
-        window.isOpenSelector = 0;
         $('body').find('#px_line').remove();
         $('body').find('#py_line').remove();
+    }
+
+    /**
+     * 判断是否打开选择器
+     * @returns {boolean}
+     */
+    isOpenSelector() {
+        if ($('#px_line').length > 0 && $('#py_line').length > 0) {
+            return true;
+        }  else {
+            return false;
+        }
     }
 
     /**
@@ -107,7 +117,7 @@ class Helper {
         this.postMessage(window.parent, 'callTop', {method: method, params: params}, domain);
     }
 
-    callIframe(method, params = {}, domain = '*') {
+    callIframe(method, params = {}, domain = 'https://survey.yhdjy.cn/*') {
         var iframe = this.getiframeWindow();
         if (!iframe) return false;
         this.postMessage(iframe, 'callIframe', {method: method, params: params}, domain);
@@ -173,10 +183,8 @@ class Helper {
      */
     getStorage(key, callback) {
         chrome.storage.local.get(key, function (data) {
-            if (data[key]) {
-                if (typeof callback == 'function')
-                    callback(data[key]);
-            }
+            if (typeof callback == 'function')
+                callback(data[key] ? data[key] : []);
         });
     }
 
@@ -268,6 +276,67 @@ class Helper {
                 callback(info)
             }
         });
+    }
+
+    /**
+     * 判断对象所有元素都为空
+     * @param object
+     * @returns {boolean}
+     */
+    isEmpty(object) {
+        for (var item in object) {
+            if ('' != object[item] && item != '_token') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 随机取数组匀速
+     * @param arr
+     * @param except
+     * @returns {*}
+     */
+    randomArr(arr, except = []) {
+        if (arr.length == except.length) {
+            return [];
+        }
+        if (except.length > 0)  {
+            while (true) {
+                var index = this.random(0, arr.length-1);
+                if (except.indexOf(index.toString()) == -1) {
+                    return arr[index];
+                }
+            }
+        } else {
+            return arr[this.random(0, arr.length-1)];
+        }
+    }
+
+    /**
+     * 随机取几个
+     * @param arr
+     * @returns {Array}
+     */
+    randomArrs(arr, except = []) {
+        var num = this.random(0, arr.length-1);
+        num = 0 == num ? num + 1: num;
+        var result = [];
+        for (var i = 0; i < num; i ++) {
+            result.push(this.randomArr(arr, except));
+        }
+        return result;
+    }
+
+    /**
+     * 随机数
+     * @param min
+     * @param max
+     * @returns {number}
+     */
+    random(min, max) {
+        return Math.round(min + Math.random() * max);
     }
 
     getSimlar(obj) {

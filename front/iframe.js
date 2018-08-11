@@ -56,21 +56,47 @@ var _iquestion = (function () {
             } else if ($(dom).hasClass('get-title')) {
                 $(dom).parents('.input-group').find('input[name=title]').val(params.text);
             } else if ($(dom).hasClass('get-random')) {
-                helper.callTop('_question.getRandom', {xpath:params.xpath})
+                //随机与全选
+                var type = $('#random-item').find('input[name=random-type]:checked').val();
+                if (!type) {
+                    helper.layerMsg('请选择类型');
+                    return false;
+                }
+                var except = $('#random-item').find('input[name=except]').val();
+                $('#random-item').find('input[name=xpath]').val(params.xpath);
+                if ('' != except) {
+                    except = except.split(',');
+                }  else {
+                    except = [];
+                }
+                switch(type) {
+                    case 'random':
+                        helper.callTop('_question.getRandom', {xpath:params.xpath, except: except});
+                        break;
+                    case 'randoms':
+                        helper.callTop('_question.getRandoms', {xpath:params.xpath, except: except});
+                        break;
+                    case 'all':
+                        helper.callTop('_question.getAll', {xpath:params.xpath, except: except});
+                        break;
+                }
             }
         },
         //添加题目提交
         addQuestionSubmit: function (params) {
             if (loading_flag == 1) return false;
             var url = $('#edit-form').attr('action');
+            //初始化数据
             var data = {
                 _token: $('#edit-form').find('input[name=_token]').val(),
                 title: $('#edit-form').find('input[name=title]').val(),
                 type: $('#edit-form').find('input[name=type]:checked').val(),
                 script: $('#edit-form').find('textarea[name=script]').val(),
                 xpath: [],
-                answer: []
+                answer: [],
+                random: {type: '', except: [],xpath: ''}
             };
+            //取xpath
             $('#xpath-item').find('.input-group').each(function (i, v) {
                 var kv = [
                     $(this).find('input[name=xpath]').val(),
@@ -80,12 +106,20 @@ var _iquestion = (function () {
                     data.xpath.push(kv);
                 }
             })
+            //取答案
             $('#answer-item').find('.input-group').each(function (i, v) {
                 var answer = $(this).find('input[name=answer]').val();
                 if (answer != '') {
                     data.answer.push(answer);
                 }
             })
+            //随机/全选设置
+            var randomType = $('#random-item').find('input[name=random-type]:checked').val();
+            var except = $('#random-item').find('input[name=except]').val();
+            var xpath = $('#random-item').find('input[name=xpath]').val();
+            data.random.type = randomType ? randomType : '';
+            data.random.except = except ? except.split(',') : [];
+            data.random.xpath = xpath ? xpath : '';
             if (params.returnParams == true) {
                 helper.callTop('_autoAnswer.findAnswer', data)
                 return false;
@@ -131,8 +165,8 @@ var _isurvey = (function () {
         })
     })
     //选择调查操作
-    $('body').on('click', '#search-action tbody tr', function () {
-        $('#search-action tbody tr').removeClass('bg-primary');
+    $('body').on('click', '#search-action tbody tr.survey-item', function () {
+        $('#search-action tbody tr.survey-item').removeClass('bg-primary');
         $(this).addClass('bg-primary');
         $(this).find('input').attr('checked');
     })
@@ -140,16 +174,16 @@ var _isurvey = (function () {
     return {
 
         //调查添加选择入口
-        save: function () {
+        save: function (test) {
             var action = $('#survey-option').find('.nav li.active').data('action');
             if (action == 'search') {
                 _isurvey.selectSurvey();
             } else {
-                _isurvey.addSurveySubmit();
+                _isurvey.addSurveySubmit(test);
             }
         },
         //添加调查提交
-        addSurveySubmit: function () {
+        addSurveySubmit: function (test) {
             if (loading_flag == 1) return false;
             var url = $('#edit-form').attr('action');
             var params = {};
@@ -157,6 +191,10 @@ var _isurvey = (function () {
             $.each(foem, function (i, v) {
                 params[v.name] = v.value;
             })
+            if (1 == test) {
+                helper.callTop('_survey.testSurvey', params);
+                return false;
+            }
             loading_flag = 1;
             var loading_index = layer.load();
             $.post(url, params, function (ret) {
@@ -176,13 +214,14 @@ var _isurvey = (function () {
         },
         //选择调查
         selectSurvey: function () {
-            var selected = $('#survey-list').find('tr.bg-primary');
+            var selected = $('#survey-list').find('.survey-item.bg-primary');
             if (selected.length == 0) {
                 helper.layerMsg('请选择一个调查');
                 return false;
             }
             var survey = $(selected).data('survey');
             helper.setStorage('select_survey', survey);
+            console.log(survey)
             helper.layerMsg('select success', 1, function () {
                 helper.callTop('helper.closeLayer');
             });
