@@ -75,11 +75,11 @@ var _question = (function () {
             if (checkbox.length > 0) {
                 var name = checkbox.eq(0).attr('name');
                 $('body').find('.select-num-flag').remove();
-                var allSelect = $('body').find('input[name="'+name+'"]');
+                var allSelect = $('body').find('input[name="' + name + '"]');
                 allSelect.removeAttr('checked');
                 var randomSelect = helper.randomArr(allSelect, params.except);
                 $(allSelect).each(function (i, v) {
-                    $(v).parent().prepend('<font class="select-num-flag" color="red">'+(i)+'</font>')
+                    $(v).parent().prepend('<font class="select-num-flag" color="red">' + (i) + '</font>')
                 })
                 $(randomSelect).attr('checked', true);
                 return 1;
@@ -87,17 +87,17 @@ var _question = (function () {
             return 0;
         },
         //随机多选
-        getRandoms: function(params) {
+        getRandoms: function (params) {
             var dom = helper.parseXpath(params.xpath);
             var checkbox = $(dom).find('input[type=checkbox]');
             if (checkbox.length > 0) {
                 var name = checkbox.eq(0).attr('name');
                 $('body').find('.select-num-flag').remove();
-                var allSelect = $('body').find('input[name="'+name+'"]');
+                var allSelect = $('body').find('input[name="' + name + '"]');
                 allSelect.removeAttr('checked');
                 var randomSelect = helper.randomArrs(allSelect, params.except);
                 $(allSelect).each(function (i, v) {
-                    $(v).parent().prepend('<font class="select-num-flag" color="red">'+(i)+'</font>')
+                    $(v).parent().prepend('<font class="select-num-flag" color="red">' + (i) + '</font>')
                 })
                 $(randomSelect).attr('checked', true);
                 return 1;
@@ -105,17 +105,17 @@ var _question = (function () {
             return 0;
         },
         //全选
-        getAll: function(params) {
+        getAll: function (params) {
             var dom = helper.parseXpath(params.xpath);
             var checkbox = $(dom).find('input[type=checkbox]');
             if (checkbox.length > 0) {
                 var name = checkbox.eq(0).attr('name');
                 $('body').find('.select-num-flag').remove();
-                var allSelect = $('body').find('input[name="'+name+'"]');
+                var allSelect = $('body').find('input[name="' + name + '"]');
                 allSelect.removeAttr('checked');
                 var selected = [];
                 $(allSelect).each(function (i, v) {
-                    $(v).parent().prepend('<font class="select-num-flag" color="red">'+(i)+'</font>');
+                    $(v).parent().prepend('<font class="select-num-flag" color="red">' + (i) + '</font>');
                     if (params.except.indexOf(i.toString()) == -1) {
                         selected.push(v);
                     }
@@ -155,7 +155,7 @@ var _survey = (function () {
                 type: 2,
                 title: '选择调查',
                 area: ['700px', '400px'],
-                btn: ['确定', '测试','取消'],
+                btn: ['确定', '测试', '取消'],
                 maxmin: true,
                 moveOut: true,
                 content: select_survey,
@@ -164,7 +164,7 @@ var _survey = (function () {
                     window.isOpen = 0;
                     return false;
                 },
-                btn2:function () {
+                btn2: function () {
                     helper.callIframe('_isurvey.save', 1);
                     return false;
                 },
@@ -295,7 +295,7 @@ var _autoAnswer = (function () {
         },
         //找答案入口
         findAnswer: function (question) {
-            var ret1 = 1, ret2 = 1, ret3 = 1,ret4 = 1;
+            var ret1 = 1, ret2 = 1, ret3 = 1, ret4 = 1;
             if (question.script != '') {
                 ret1 = _autoAnswer.autoScript(question.script)
             }
@@ -305,8 +305,8 @@ var _autoAnswer = (function () {
             if (question.answer.length > 0) {
                 ret3 = _autoAnswer.autoAnswer(question.answer);
             }
-            if (question.random && question.random.type)  {
-                switch(question.random.type) {
+            if (question.random && question.random.type) {
+                switch (question.random.type) {
                     case 'random':
                         ret4 = _question.getRandom(question.random);
                         break;
