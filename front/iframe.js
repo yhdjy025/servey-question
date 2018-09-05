@@ -14,9 +14,14 @@ var _iquestion = (function () {
         $(this).parents('.input-group').remove();
     })
     //获取点击元素的xpath
-    $('body').on('click', '#edit-form .get-xpath,#edit-form .get-answer,#edit-form .get-title,#edit-form .get-random', function () {
+    $('body').on('click', '#edit-form .get-xpath,#edit-form .get-answer,#edit-form .get-title', function () {
         window.writeClickDom = this;
-        helper.callTop('_question.getClickDom');
+        helper.callTop('_question.getClickDom', {type: 'getDom'});
+    })
+
+    $('body').on('click', '#edit-form .get-random', function () {
+        window.writeClickDom = this;
+        helper.callTop('_question.getClickDom', {type: 'getAllAnswer'});
     })
 
     return {
@@ -55,32 +60,22 @@ var _iquestion = (function () {
 
             } else if ($(dom).hasClass('get-title')) {
                 $(dom).parents('.input-group').find('input[name=title]').val(params.text);
-            } else if ($(dom).hasClass('get-random')) {
-                //随机与全选
-                var type = $('#random-item').find('input[name=random-type]:checked').val();
-                if (!type) {
-                    helper.layerMsg('请选择类型');
-                    return false;
-                }
-                var except = $('#random-item').find('input[name=except]').val();
-                $('#random-item').find('input[name=xpath]').val(params.xpath);
-                if ('' != except) {
-                    except = except.split(',');
-                }  else {
-                    except = [];
-                }
-                switch(type) {
-                    case 'random':
-                        helper.callTop('_question.getRandom', {xpath:params.xpath, except: except});
-                        break;
-                    case 'randoms':
-                        helper.callTop('_question.getRandoms', {xpath:params.xpath, except: except});
-                        break;
-                    case 'all':
-                        helper.callTop('_question.getAll', {xpath:params.xpath, except: except});
-                        break;
-                }
             }
+        },
+
+        writeClickRandom(params) {
+            var html = '';
+            $.each(params.answers, function (i, v) {
+                html += '<div class="input-group form-group">' +
+                    '<span>'+(i+1)+'</span>' +
+                    '<div class="col-xs-6"><input type="text" name="xpath" class="form-control input-sm" value="'+v+'" placeholder="xpath"></div>' +
+                    '<div class="col-xs-6"><input type="text" name="value" class="form-control input-sm" value="" placeholder="权重"></div>' +
+                    '<span class="input-group-btn">' +
+                    '<button class="btn btn-danger btn-sm remove-input">删除</button>' +
+                    '</span>' +
+                    '</div>';
+            })
+            $('.answer-list').html(html);
         },
         //添加题目提交
         addQuestionSubmit: function (params) {

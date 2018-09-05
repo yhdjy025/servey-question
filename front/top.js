@@ -5,6 +5,7 @@ window.isOpen = 0;
 window.callFunction = 'callTop';
 var times = null;
 var autoAnswerFlag = 0;
+var clickDomType = 'getDom';
 
 var _question = (function () {
     //鉴定点击元素，并取得xpath和text
@@ -19,7 +20,14 @@ var _question = (function () {
             //关闭坐标
             helper.closeSelector();
             //把数据传回iframe
-            helper.callIframe('_iquestion.writeClickResult', params);
+            switch (clickDomType) {
+                case 'getDom':
+                    helper.callIframe('_iquestion.writeClickResult', params);
+                    break;
+                case 'getAllAnswer':
+                    _question.getAllAnswer(params);
+                    break;
+            }
             return false;
         } else {
             return true;
@@ -63,74 +71,34 @@ var _question = (function () {
                         }
                     })
                 } else {
-                    layer.helper.layerMsg('选择一个调查后才能添加题目');
+                    helper.layerMsg('选择一个调查后才能添加题目');
                     return false;
                 }
             })
         },
-        //随机单选
-        getRandom: function (params) {
-            var dom = helper.parseXpath(params.xpath);
-            var checkbox = $(dom).find('input[type=checkbox],input[type=radio]');
-            if (checkbox.length > 0) {
-                var name = checkbox.eq(0).attr('name');
-                $('body').find('.select-num-flag').remove();
-                var allSelect = $('body').find('input[name="'+name+'"]');
-                allSelect.removeAttr('checked');
-                var randomSelect = helper.randomArr(allSelect, params.except);
-                $(allSelect).each(function (i, v) {
-                    $(v).parent().prepend('<font class="select-num-flag" color="red">'+(i)+'</font>')
-                })
-                $(randomSelect).attr('checked', true);
-                return 1;
-            }
-            return 0;
-        },
-        //随机多选
-        getRandoms: function(params) {
-            var dom = helper.parseXpath(params.xpath);
-            var checkbox = $(dom).find('input[type=checkbox]');
-            if (checkbox.length > 0) {
-                var name = checkbox.eq(0).attr('name');
-                $('body').find('.select-num-flag').remove();
-                var allSelect = $('body').find('input[name="'+name+'"]');
-                allSelect.removeAttr('checked');
-                var randomSelect = helper.randomArrs(allSelect, params.except);
-                $(allSelect).each(function (i, v) {
-                    $(v).parent().prepend('<font class="select-num-flag" color="red">'+(i)+'</font>')
-                })
-                $(randomSelect).attr('checked', true);
-                return 1;
-            }
-            return 0;
-        },
         //全选
-        getAll: function(params) {
+        getAllAnswer: function(params) {
             var dom = helper.parseXpath(params.xpath);
             var checkbox = $(dom).find('input[type=checkbox]');
             if (checkbox.length > 0) {
                 var name = checkbox.eq(0).attr('name');
                 $('body').find('.select-num-flag').remove();
-                var allSelect = $('body').find('input[name="'+name+'"]');
-                allSelect.removeAttr('checked');
-                var selected = [];
-                $(allSelect).each(function (i, v) {
-                    $(v).parent().prepend('<font class="select-num-flag" color="red">'+(i)+'</font>');
-                    if (params.except.indexOf(i.toString()) == -1) {
-                        selected.push(v);
-                    }
+                var allAnswer = $('body').find('input[name="'+name+'"]');
+                var allAnswerXpath = [];
+                $(allAnswer).each(function (i, v) {
+                    $(v).parent().prepend('<font class="select-num-flag" color="red">'+(i+1)+'</font>');
+                    allAnswerXpath.push(helper.getDomXpath(v));
                 })
-                $(selected).attr('checked', true);
-                return 1;
+                helper.callIframe('_iquestion.writeClickRandom', {answers: allAnswerXpath});
             }
-            return 0;
         },
 
         /**
          * 获取点击元素
          * @param params
          */
-        getClickDom: function () {
+        getClickDom: function (params) {
+            clickDomType = params.type ? params.type : 'getDom';
             helper.openSelector();
         }
     };
