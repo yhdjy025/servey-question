@@ -184,7 +184,7 @@ class Helper {
     getStorage(key, callback) {
         chrome.storage.local.get(key, function (data) {
             if (typeof callback == 'function')
-                callback(data[key] ? data[key] : []);
+                callback(data[key] ? data[key] : null);
         });
     }
 
