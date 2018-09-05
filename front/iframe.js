@@ -67,7 +67,7 @@ var _iquestion = (function () {
             var html = '';
             $.each(params.answers, function (i, v) {
                 html += '<div class="input-group form-group">' +
-                    '<span>'+(i+1)+'</span>' +
+                    '<span class="input-group-addon">'+(i+1)+'</span>' +
                     '<div class="col-xs-6"><input type="text" name="xpath" class="form-control input-sm" value="'+v+'" placeholder="xpath"></div>' +
                     '<div class="col-xs-6"><input type="text" name="value" class="form-control input-sm" value="" placeholder="权重"></div>' +
                     '<span class="input-group-btn">' +
